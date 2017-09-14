@@ -1,0 +1,35 @@
+CS 4470 
+Greedy Chess
+
+Overall Goal
+ Obtain an understanding of game-playing search algorithms such as mini-max and alpha-beta pruning
+
+Requirements
+
+	Create a Greedy Chess Player
+	Implement a legal move generator.
+	Include queening
+	Not include
+	En passant
+	Castling
+	Should not make any Illegal moves.
+	Implement a heuristic evaluation function.
+	Use the uvschess framework
+	Found on code.google.com
+
+Grading
+
+	You will be graded on winning of a game of chess against a random opponent.
+	You will be given two chances.
+	One as black one as white
+	Grading: you will be awarded one of the following:
+	55 points for a checkmate
+	40 points for a stalemate
+	If an illegal move is found you will not get full points, but will get points per my discression
+
+	Code Review
+	5 pts for heuristic evaluation function
+	5 points for a legal move generator
+	Turn in just these two functions
+
+
