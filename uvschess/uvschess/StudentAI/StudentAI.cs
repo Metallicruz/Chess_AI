@@ -15,9 +15,9 @@ namespace StudentAI
         public string Name
         {
 #if DEBUG
-            get { return "StudentAI (Debug)"; }
+            get { return "Group One (Debug)"; }
 #else
-            get { return "StudentAI"; }
+            get { return "Group One"; }
 #endif
         }
 
@@ -30,7 +30,23 @@ namespace StudentAI
         /// <returns> Returns the best chess move the player has for the given chess board</returns>
         public ChessMove GetNextMove(ChessBoard board, ChessColor myColor)
         {
-            throw (new NotImplementedException());
+            ChessMove myNextMove = null;
+
+            while (!IsMyTurnOver())
+            {
+                if (myNextMove == null)
+                {
+                    //myNextMove = MoveAPawn(board, myColor);
+                    this.Log(myColor.ToString() + " (" + this.Name + ") just moved.");
+                    this.Log(string.Empty);
+
+                    // Since I have a move, break out of loop
+                    break;
+                }
+            }
+
+            Profiler.SetDepthReachedDuringThisTurn(2);
+            return myNextMove;
         }
 
         /// <summary>
