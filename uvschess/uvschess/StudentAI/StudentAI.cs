@@ -59,8 +59,112 @@ namespace StudentAI
         public bool IsValidMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
             throw (new NotImplementedException());
+			/*if(boardBeforeMove[moveToCheck.From()]
+			if the moveToCheck has a piece of same color then return false
+			if moveToCheck is in check for chesscolor return false
+			*/
+			bool isValid = true;	
+			switch (Math.abs(boardBeforeMove[moveToCheck.From()))
+			{
+				case ChessPiece.WhitePawn:
+					isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					break;
+				case ChessPiece.WhiteRook:
+					isValid = RookMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					break;
+				case ChessPiece.WhiteKnight:
+					isValid = KnightMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					break;
+				case ChessPiece.WhiteBishop:
+					isValid = BishopMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					break;
+				case ChessPiece.WhiteQueen:
+					isValid = QueenMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					break;
+				case ChessPiece.WhiteKing:
+					isValid = KingMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					break;
+				case ChessPiece.Empty:
+					isValid = false;
+					break;
+				default:
+					throw new Exception("Invalid chess piece");
+			}
+			return isValid;
         }
 
+        /// <summary>
+        /// Contains movement logic for pawns.
+        /// </summary>
+        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
+        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
+        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
+        /// <returns>Returns true if the move was valid</returns>
+        static private bool PawnMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        {
+            throw (new NotImplementedException());
+        }
+
+        /// <summary>
+        /// Contains movement logic for knights.
+        /// </summary>
+        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
+        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
+        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
+        /// <returns>Returns true if the move was valid</returns>
+        static private bool KnightMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        {
+            throw (new NotImplementedException());
+        }
+		
+        /// <summary>
+        /// Contains movement logic for knights.
+        /// </summary>
+        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
+        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
+        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
+        /// <returns>Returns true if the move was valid</returns>
+        static private bool BishopMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        {
+            throw (new NotImplementedException());
+        }
+		
+        /// <summary>
+        /// Contains movement logic for knights.
+        /// </summary>
+        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
+        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
+        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
+        /// <returns>Returns true if the move was valid</returns>
+        static private bool RookMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        {
+            throw (new NotImplementedException());
+        }
+
+        /// <summary>
+        /// Contains movement logic for queens.
+        /// </summary>
+        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
+        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
+        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
+        /// <returns>Returns true if the move was valid</returns>
+        static private bool QueenMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        {
+            throw (new NotImplementedException());
+        }
+		
+        /// <summary>
+        /// Contains movement logic for kings.
+        /// </summary>
+        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
+        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
+        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
+        /// <returns>Returns true if the move was valid</returns>
+        private bool KingMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        {
+            throw (new NotImplementedException());
+        }
+		
         #endregion
 
 
