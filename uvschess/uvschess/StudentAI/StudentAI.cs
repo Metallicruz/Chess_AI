@@ -59,12 +59,12 @@ namespace StudentAI
         public bool IsValidMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
             throw (new NotImplementedException());
-			/*if(boardBeforeMove[moveToCheck.From()]
-			if the moveToCheck has a piece of same color then return false
-			if moveToCheck is in check for chesscolor return false
+			/*
+			if (the moveToCheck To and From has a piece of same color) then return false
+			if (moveToCheck To results in ChessFlag.Check or ChessFlag.Checkmate for colorOfPlayerMoving) then return false
 			*/
 			bool isValid = true;	
-			switch (Math.abs(boardBeforeMove[moveToCheck.From()))
+			switch (Math.abs(boardBeforeMove[moveToCheck.From().X, moveToCheck.From().Y))
 			{
 				case ChessPiece.WhitePawn:
 					isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
@@ -92,16 +92,24 @@ namespace StudentAI
 			}
 			return isValid;
         }
+		
+		
 
         /// <summary>
         /// Contains movement logic for pawns.
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool PawnMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        static private bool PawnToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
+			if(moveToCheck.From.Y == 6 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] > 0){// starting 2nd row and is white
+				
+			}
+			else if(moveToCheck.From.Y == 1 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] < 0){//starting from 7th row
+				
+			}
+			
             throw (new NotImplementedException());
         }
 
@@ -110,11 +118,20 @@ namespace StudentAI
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool KnightMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        static private bool KnightToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-            throw (new NotImplementedException());
+			/*
+			//offset 2 in one direction 1 in the other
+			var offsetX=Math.abs(targetColumn-originColumn);
+			offsetY=Math.abs(targetRow-originRow);
+			if(offsetX==1 || offsetY==1){
+				if(offsetX==2 || offsetY==2){
+					return true;
+				}
+			}
+			return false;
+			*/
         }
 		
         /// <summary>
@@ -122,11 +139,58 @@ namespace StudentAI
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool BishopMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        static private bool BishopToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-            throw (new NotImplementedException());
+			/*
+			if(targetRow==originRow||targetColumn==originColumn){//diagonal movement means both row/column will change
+				return false;
+			}
+			if(Math.abs(targetRow-originRow)!=Math.abs(targetColumn-originColumn)){
+				return false;
+			}
+			if(targetRow<originRow){//move upward
+				if(targetColumn>originColumn){//move right
+					var j = originColumn;
+					for(var i=originRow-1;i>targetRow;i--){
+						++j;
+						if(position[gameTurn][i][j]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}else{//move left
+					var j = originColumn;
+					for(var i=originRow-1;i>targetRow;i--){
+						--j;
+						if(position[gameTurn][i][j]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}
+			}else{//move downwards
+				if(targetColumn>originColumn){//move right
+					var j = originColumn;
+					for(var i=originRow+1;i<targetRow;i++){
+						++j;
+						if(position[gameTurn][i][j]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}else{//move left
+					var j = originColumn;
+					for(var i=originRow+1;i<targetRow;i++){
+						--j;
+						if(position[gameTurn][i][j]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}
+			}
+			*/
         }
 		
         /// <summary>
@@ -134,11 +198,45 @@ namespace StudentAI
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool RookMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        static private bool RookToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-            throw (new NotImplementedException());
+			
+			/*'
+			if(targetRow==originRow){//move sideways
+				if(targetColumn>originColumn){//moving right
+					for(var i=1; i<Math.abs(targetColumn-originColumn); i++){
+						if(position[gameTurn][originRow][originColumn+i]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}else{//moving left
+					for(var i=1; i<Math.abs(targetColumn-originColumn); i++){
+						if(position[gameTurn][originRow][originColumn-i]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}
+			}else if(targetColumn==originColumn){//move up/down
+				if(targetRow>originRow){//moving up
+					for(var i=1; i<Math.abs(targetRow-originRow); i++){
+						if(position[gameTurn][originRow+i][originColumn]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}else{//moving down
+					for(var i=1; i<Math.abs(targetRow-originRow); i++){
+						if(position[gameTurn][originRow-i][originColumn]!=undefined){//piece in the way
+							return false;
+						}
+					}
+					return true;
+				}
+			}	
+			*/
         }
 
         /// <summary>
@@ -146,11 +244,14 @@ namespace StudentAI
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool QueenMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        static private bool QueenToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-            throw (new NotImplementedException());
+			/*
+			if(bishopMove() || rookMove()){
+				return true;
+			}
+			*/
         }
 		
         /// <summary>
@@ -158,11 +259,22 @@ namespace StudentAI
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <param name="colorOfPlayerMoving">This is the color of the player who's making the move.</param>
         /// <returns>Returns true if the move was valid</returns>
-        private bool KingMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        private bool KingToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-            throw (new NotImplementedException());
+			/*
+			var offsetX=Math.abs(targetColumn-originColumn);
+			offsetY=Math.abs(targetRow-originRow);
+			if(offsetX>1 || offsetY>1){
+				return false;
+			}
+			if((gameTurn%2)==0){//blacks turn
+				bKingPos = targetRow+originRow;
+			}else{
+				wKingPos = targetRow+originRow;
+			}
+			return true;
+			*/
         }
 		
         #endregion
