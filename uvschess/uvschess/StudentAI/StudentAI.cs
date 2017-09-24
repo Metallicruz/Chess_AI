@@ -23,6 +23,17 @@ namespace StudentAI
         }
 
         /// <summary>
+        /// An enum that represents the different heuristic functions.
+        /// </summary>
+        private enum Heuristic
+        {
+            PieceCost,
+            Defenders,
+            Pin,
+            Fork
+        }
+
+        /// <summary>
         /// Evaluates the chess board and decided which move to make. This is the main method of the AI.
         /// The framework will call this method when it's your turn.
         /// </summary>
@@ -147,6 +158,10 @@ namespace StudentAI
             }
         }
 
+        #endregion
+
+        #region Methods to check if a move is valid.
+
         /// <summary>
         /// Validates a move. The framework uses this to validate the opponents move.
         /// </summary>
@@ -221,18 +236,15 @@ namespace StudentAI
         /// <returns>Returns true if the move was valid</returns>
         static private bool KnightToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-            /*
-			//offset 2 in one direction 1 in the other
-			var offsetX=Math.abs(targetColumn-originColumn);
-			offsetY=Math.abs(targetRow-originRow);
+            //offset 2 in one direction 1 in the other
+            int offsetX=Math.Abs(moveToCheck.To.X - moveToCheck.From.X);
+			int offsetY=Math.Abs(moveToCheck.To.Y - moveToCheck.From.Y);
 			if(offsetX==1 || offsetY==1){
 				if(offsetX==2 || offsetY==2){
 					return true;
 				}
 			}
 			return false;
-			*/
-            throw (new NotImplementedException());
         }
 
         /// <summary>
@@ -980,14 +992,18 @@ namespace StudentAI
             }*/
         }
 
+        #endregion
+        
+        #region Methods to calculate position cost.
+
         /// <summary>
-        /// This method determines the total cost of the board relative to a player color (positive is beneficial)
+        /// This method determines the total cost of the pieces on board relative to a player color (positive is beneficial)
         /// </summary>
         /// <param name="chessPiece"></param>
         /// <param name="myColor"></param>
         /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static short CalcPieceCost(ChessBoard board, ChessColor myColor)
-        { // Got through the entire board one tile at a time looking for chess pieces I can move
+        { // Got through the entire board one tile at a time adding up piece cost
             short cost = 0;
             for (short Y = 0; Y < ChessBoard.NumberOfRows; Y++)
             {
@@ -999,7 +1015,7 @@ namespace StudentAI
                         case ChessPiece.WhitePawn:
                             ++cost;
                             break;
-                            
+
                         case ChessPiece.WhiteKnight:
                         case ChessPiece.WhiteBishop:
                             cost += 3;
@@ -1019,7 +1035,7 @@ namespace StudentAI
                         case ChessPiece.BlackPawn:
                             --cost;
                             break;
-                            
+
                         case ChessPiece.BlackKnight:
                         case ChessPiece.BlackBishop:
                             cost -= 3;
@@ -1041,14 +1057,250 @@ namespace StudentAI
                     }
                 }
             }
-            if(myColor == ChessColor.Black)//player is black so negative value is good
+            if (myColor == ChessColor.Black)//player is black so negative value is good
             {
                 cost *= -1;//therefore switch signs
             }
             return cost;
         }
-    }
-}
+
+        /// <summary>
+        /// This method determines the cost of the board based on defended pieces relative to a player color (positive is beneficial)
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static short CalcDefendedCost(ChessBoard board, ChessColor myColor)
+        { // Got through the entire board one tile at a adding up defended pieces
+            short cost = 0;
+            ChessLocation currentLocation = new ChessLocation(0, 0);
+            ChessLocation[] defendedPieces = new ChessLocation[ChessBoard.NumberOfColumns * 4];//board has a max of 4 rows of pieces
+            short numOfDefendedPieces = 0;
+            for (short Y = 0; Y < ChessBoard.NumberOfRows; Y++)
+            {
+                for (short X = 0; X < ChessBoard.NumberOfColumns; X++)//iterate through every square on board
+                {
+                    currentLocation.X = X;
+                    currentLocation.Y = Y;
+                    switch (board[X, Y])
+                    {
+                        // Add up cost of all pieces currently on board.
+                        case ChessPiece.WhitePawn:
+                            PawnIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            break;
+
+                        case ChessPiece.WhiteKnight:
+                            KnightIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost += 3;
+                            break;
+                        case ChessPiece.WhiteBishop:
+                            BishopIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost += 3;
+                            break;
+
+                        case ChessPiece.WhiteRook:
+                            RookIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost += 5;
+                            break;
+
+                        case ChessPiece.WhiteQueen:
+                            QueenIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost += 9;
+                            break;
+                        case ChessPiece.BlackPawn:
+                            PawnIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            --cost;
+                            break;
+
+                        case ChessPiece.BlackKnight:
+                            KnightIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost -= 3;
+                            break;
+                        case ChessPiece.BlackBishop:
+                            BishopIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost -= 3;
+                            break;
+
+                        case ChessPiece.BlackRook:
+                            RookIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost -= 5;
+                            break;
+
+                        case ChessPiece.BlackQueen:
+                            QueenIsDefending(ref board, ref currentLocation, ref defendedPieces, ref myColor);
+                            cost -= 9;
+                            break;
+                        default://empty square
+                            continue;
+                    }
+                }
+            }
+            if (myColor == ChessColor.Black)//player is black so negative value is good
+            {
+                cost *= -1;//therefore switch signs
+            }
+            return cost;
+        }
+        /// <summary>
+        /// This method which pieces are being defended by a certain pawn
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static int PawnIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
+        { // find which pieces are being defended
+            int count = 0;
+            int cost = 1;
+            if(color == ChessColor.White)
+            {
+                if (board[defender.X - 1, defender.Y - 1]!=ChessPiece.Empty &&
+                    isEnemy(board[defender.X-1,defender.Y-1], color) == false)//friendly piece
+                {
+                    ++count;
+                    ++cost;
+                }
+                if (board[defender.X + 1, defender.Y - 1] != ChessPiece.Empty &&
+                    isEnemy(board[defender.X - 1, defender.Y - 1], color) == false)//friendly piece
+                {
+                    ++count;
+                    ++cost;
+                }
+            }
+            else
+            {
+                if (board[defender.X - 1, defender.Y + 1] != ChessPiece.Empty &&
+                    isEnemy(board[defender.X - 1, defender.Y - 1], color) == false)//friendly piece
+                {
+                    ++count;
+                    ++cost;
+                }
+                if (board[defender.X + 1, defender.Y + 1] != ChessPiece.Empty &&
+                    isEnemy(board[defender.X - 1, defender.Y - 1], color) == false)//friendly piece
+                {
+                    ++count;
+                    ++cost;
+                }
+            }
+            return (cost - count);
+        }
+        /// <summary>
+        /// This method which pieces are being defended by a certain bishop
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static int BishopIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
+        { // find which pieces are being defended
+            int count = 0;
+            int cost = 1;
+            return (cost - count);
+        }
+        /// <summary>
+        /// This method which pieces are being defended by a certain pawn
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static int KnightIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
+        { // find which pieces are being defended
+            int count = 0;
+            int cost = 1;
+            return (cost - count);
+        }
+        /// <summary>
+        /// This method which pieces are being defended by a certain pawn
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static int RookIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
+        { // find which pieces are being defended
+            int count = 0;
+            int cost = 1;
+            return (cost - count);
+        }
+        /// <summary>
+        /// This method which pieces are being defended by the queen
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static int QueenIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
+        { // find which pieces are being defended
+            int count = 0;
+            int cost = 1;
+            return (cost - count);
+        }
+
+        #endregion
+
+        #region Search algorithms and heuristic functions
+
+        /// <summary>
+        /// This method determines the best move for current tree based off min and max values
+        /// </summary>
+        /// <param name="tree"></param>
+        /// <param name="myColor"></param>
+        private static void MiniMax(ref DecisionTree tree, ChessColor myColor)
+        {
+        }
+
+        /// <summary>
+        /// This method determines the best move based soley on a heuristic functions value
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="moves"></param>
+        /// <param name="tree"></param>
+        /// <param name="myColor"></param>
+        /// <param name="choice"></param>
+        /// <returns></returns>
+        private static ChessMove Greedy(ChessBoard board, ref List<ChessMove> moves, ref DecisionTree tree, ChessColor myColor, Heuristic choice)
+        {
+            int currentValue = 0;
+            int bestValue = 0;
+            ChessMove bestMove = null;
+            ChessPiece tempPieceTo;
+            ChessPiece tempPieceFrom;
+            foreach (ChessMove move in moves)
+            {
+                tempPieceTo = board[move.To];// save previous board state piece to move to
+                tempPieceFrom = board[move.From];// save previous board state piece to be moved
+                board.MakeMove(move);//make temporary move
+                switch (choice)
+                {
+                    case Heuristic.PieceCost:
+                        currentValue = CalcPieceCost(board, myColor);
+                        break;
+                    case Heuristic.Defenders:
+                        //value = CalcDefendedCost(board, myColor);
+                        break;
+                    default:
+                        break;
+                }
+                if (currentValue > bestValue)
+                {
+                    bestValue = currentValue;
+                    bestMove = move;
+                }
+                //restore board to original state
+                board[move.To] = tempPieceTo;
+                board[move.From] = tempPieceFrom;
+            }
+            return bestMove;
+        }
+
+
+        /// <summary>
+        /// Gets rid of moves that don't have potential to be the best
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="myColor"></param>
+        /// <param name="choice"></param>
+        /// <returns></returns>
+        private static DecisionTree AlphaBetaPruning(ChessBoard board, ChessColor myColor, Heuristic choice)
+        { // Got through the entire board one tile at a time adding up piece cost
+            return null;
+        }
 
         #endregion
 
@@ -1067,18 +1319,16 @@ namespace StudentAI
 
 
 
-
-
-            #region IChessAI Members that should be implemented as automatic properties and should NEVER be touched by students.
-            /// <summary>
-            /// This will return false when the framework starts running your AI. When the AI's time has run out,
-            /// then this method will return true. Once this method returns true, your AI should return a 
-            /// move immediately.
-            /// 
-            /// You should NEVER EVER set this property!
-            /// This property should be defined as an Automatic Property.
-            /// This property SHOULD NOT CONTAIN ANY CODE!!!
-            /// </summary>
+        #region IChessAI Members that should be implemented as automatic properties and should NEVER be touched by students.
+        /// <summary>
+        /// This will return false when the framework starts running your AI. When the AI's time has run out,
+        /// then this method will return true. Once this method returns true, your AI should return a 
+        /// move immediately.
+        /// 
+        /// You should NEVER EVER set this property!
+        /// This property should be defined as an Automatic Property.
+        /// This property SHOULD NOT CONTAIN ANY CODE!!!
+        /// </summary>
         public AIIsMyTurnOverCallback IsMyTurnOver { get; set; }
 
         /// <summary>
