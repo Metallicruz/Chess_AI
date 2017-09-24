@@ -156,12 +156,12 @@ namespace StudentAI
         /// <returns>Returns true if the move was valid</returns>
         public bool IsValidMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
-            
-			/*
+
+            /*
 			if (the moveToCheck To and From has a piece of same color) then return false
 			if (moveToCheck To results in ChessFlag.Check or ChessFlag.Checkmate for colorOfPlayerMoving) then return false
 			*/
-			bool isValid = true;	
+            bool isValid = true;
             /*
 			switch (Math.abs(boardBeforeMove[moveToCheck.From().X, moveToCheck.From().Y))
 			{
@@ -190,10 +190,10 @@ namespace StudentAI
 					throw new Exception("Invalid chess piece");
 			}
             */
-			return isValid;
+            return isValid;
         }
-		
-		
+
+
 
         /// <summary>
         /// Contains movement logic for pawns.
@@ -203,13 +203,13 @@ namespace StudentAI
         /// <returns>Returns true if the move was valid</returns>
         static private bool PawnToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
-			if(moveToCheck.From.Y == 6 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] > 0){// starting 2nd row and is white
-				
-			}
-			else if(moveToCheck.From.Y == 1 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] < 0){//starting from 7th row
-				
-			}
-			
+            if (moveToCheck.From.Y == 6 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] > 0) {// starting 2nd row and is white
+
+            }
+            else if (moveToCheck.From.Y == 1 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] < 0) {//starting from 7th row
+
+            }
+
             throw (new NotImplementedException());
         }
 
@@ -234,7 +234,7 @@ namespace StudentAI
 			*/
             throw (new NotImplementedException());
         }
-		
+
         /// <summary>
         /// Contains movement logic for knights.
         /// </summary>
@@ -294,7 +294,7 @@ namespace StudentAI
 			*/
             throw (new NotImplementedException());
         }
-		
+
         /// <summary>
         /// Contains movement logic for knights.
         /// </summary>
@@ -357,7 +357,7 @@ namespace StudentAI
 			*/
             throw (new NotImplementedException());
         }
-		
+
         /// <summary>
         /// Contains movement logic for kings.
         /// </summary>
@@ -384,7 +384,7 @@ namespace StudentAI
         #endregion
 
         #region Methods to generate a list of valid moves.
-        
+
 
         /// <summary>
         /// This method generates all valid moves for myColor based on the currentBoard
@@ -411,12 +411,12 @@ namespace StudentAI
                         switch (currentBoard[X, Y])
                         {
                             // This block handles move generations for all WhitePawn pieces.
-                            case ChessPiece.WhitePawn:                            
+                            case ChessPiece.WhitePawn:
                                 allMoves.AddRange(GetPawnMoves(currentBoard, myColor, X, Y));
                                 break;
 
                             // This block handles move generation for all WhiteKnight pieces
-                            case ChessPiece.WhiteKnight:                          
+                            case ChessPiece.WhiteKnight:
                                 allMoves.AddRange(GetKnightMoves(currentBoard, myColor, X, Y));
                                 break;
 
@@ -473,9 +473,9 @@ namespace StudentAI
                         }
                     }
 
-                    
-                    
-                    
+
+
+
                 }
             }
 
@@ -642,7 +642,7 @@ namespace StudentAI
                     break; // Friendly piece is blocking that direction.
                 }
             }
-           
+
             curY = Y;
 
             // Right
@@ -665,7 +665,7 @@ namespace StudentAI
             }
 
             curX = X;
-            
+
 
             // Left
             for (int i = 1; curX > 0 && curX <= 7; i++)
@@ -686,7 +686,7 @@ namespace StudentAI
                 }
             }
 
-         return rookMoves;
+            return rookMoves;
 
         }
 
@@ -945,9 +945,15 @@ namespace StudentAI
         /// <param name="chessPiece"></param>
         /// <param name="myColor"></param>
         /// <returns></returns>
-        private bool isEnemy(ChessPiece chessPiece, ChessColor myColor)
+        private static bool isEnemy(ChessPiece chessPiece, ChessColor myColor)
         {
-            List<ChessPiece> enemyPieces;
+            if (myColor == ChessColor.White && chessPiece > ChessPiece.Empty)//white is greater than empty
+            {
+                return false;
+            }
+            return true; //if piece not white then it must be black
+
+            /*List<ChessPiece> enemyPieces;
 
             if (myColor == ChessColor.White)
             {
@@ -967,11 +973,81 @@ namespace StudentAI
             else
             {
                 return false;
-            }
+            }*/
         }
+
+        /// <summary>
+        /// This method determines the total cost of the board relative to a player color (positive is beneficial)
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+        private static short CalcPieceCost(ChessBoard board, ChessColor myColor)
+        { // Got through the entire board one tile at a time looking for chess pieces I can move
+            short cost = 0;
+            for (short Y = 0; Y < ChessBoard.NumberOfRows; Y++)
+            {
+                for (short X = 0; X < ChessBoard.NumberOfColumns; X++)//iterate through every square on board
+                {
+                    switch (board[X, Y])
+                    {
+                        // Add up cost of all pieces currently on board.
+                        case ChessPiece.WhitePawn:
+                            ++cost;
+                            break;
+                            
+                        case ChessPiece.WhiteKnight:
+                        case ChessPiece.WhiteBishop:
+                            cost += 3;
+                            break;
+
+                        case ChessPiece.WhiteRook:
+                            cost += 5;
+                            break;
+
+                        case ChessPiece.WhiteQueen:
+                            cost += 9;
+                            break;
+
+                        case ChessPiece.WhiteKing:
+                            cost += 100;
+                            break;
+                        case ChessPiece.BlackPawn:
+                            --cost;
+                            break;
+                            
+                        case ChessPiece.BlackKnight:
+                        case ChessPiece.BlackBishop:
+                            cost -= 3;
+                            break;
+
+                        case ChessPiece.BlackRook:
+                            cost -= 5;
+                            break;
+
+                        case ChessPiece.BlackQueen:
+                            cost -= 9;
+                            break;
+
+                        case ChessPiece.BlackKing:
+                            cost -= 100;
+                            break;
+                        default://empty square
+                            continue;
+                    }
+                }
+            }
+            if(myColor == ChessColor.Black)//player is black so negative value is good
+            {
+                cost *= -1;//therefore switch signs
+            }
+            return cost;
+        }
+    }
+}
+
         #endregion
 
-        
 
 
 
@@ -988,16 +1064,17 @@ namespace StudentAI
 
 
 
-        #region IChessAI Members that should be implemented as automatic properties and should NEVER be touched by students.
-        /// <summary>
-        /// This will return false when the framework starts running your AI. When the AI's time has run out,
-        /// then this method will return true. Once this method returns true, your AI should return a 
-        /// move immediately.
-        /// 
-        /// You should NEVER EVER set this property!
-        /// This property should be defined as an Automatic Property.
-        /// This property SHOULD NOT CONTAIN ANY CODE!!!
-        /// </summary>
+
+            #region IChessAI Members that should be implemented as automatic properties and should NEVER be touched by students.
+            /// <summary>
+            /// This will return false when the framework starts running your AI. When the AI's time has run out,
+            /// then this method will return true. Once this method returns true, your AI should return a 
+            /// move immediately.
+            /// 
+            /// You should NEVER EVER set this property!
+            /// This property should be defined as an Automatic Property.
+            /// This property SHOULD NOT CONTAIN ANY CODE!!!
+            /// </summary>
         public AIIsMyTurnOverCallback IsMyTurnOver { get; set; }
 
         /// <summary>
