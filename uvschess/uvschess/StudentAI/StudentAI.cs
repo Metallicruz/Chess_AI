@@ -947,11 +947,15 @@ namespace StudentAI
         /// <returns></returns>
         private static bool isEnemy(ChessPiece chessPiece, ChessColor myColor)
         {
-            if (myColor == ChessColor.White && chessPiece > ChessPiece.Empty)//white is greater than empty
+            if (myColor == ChessColor.White && chessPiece < ChessPiece.Empty)//black is less than than empty
             {
-                return false;
+                return true;
             }
-            return true; //if piece not white then it must be black
+            if (myColor == ChessColor.Black && chessPiece > ChessPiece.Empty)//white is greater than empty
+            {
+                return true;
+            }
+            return false; //if pieces are same color
 
             /*List<ChessPiece> enemyPieces;
 
