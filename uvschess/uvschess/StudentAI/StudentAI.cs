@@ -409,8 +409,7 @@ namespace StudentAI
 #if DEBUG
             Profiler.IncrementTagCount((int)StudentAIProfilerTags.GetAllMoves);
 #endif
-            // This method only generates moves for pawns to move one space forward.
-            // It does not generate moves for any other pieces.
+         
             List<ChessMove> allMoves = new List<ChessMove>();
 
             // Got through the entire board one tile at a time looking for chess pieces I can move
@@ -446,7 +445,7 @@ namespace StudentAI
                                 break;
 
                             case ChessPiece.WhiteKing:
-                                //allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
+                                allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
                                 break;
 
                         }
@@ -479,7 +478,7 @@ namespace StudentAI
                                 break;
 
                             case ChessPiece.BlackKing:
-                                //allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
+                                allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
                                 break;
 
                         }
@@ -494,6 +493,14 @@ namespace StudentAI
             return allMoves;
         }
 
+        /// <summary>
+        /// This method returns a list of all possible moves the King piece make.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <returns></returns>
         private List<ChessMove> GetKingMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> kingMoves = new List<ChessMove>();
@@ -501,11 +508,7 @@ namespace StudentAI
             // Down
             if (Y < 7)
             {
-                if (currentBoard[X, Y + 1] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
-                }
-                else if (isEnemy(currentBoard[X, Y + 1], myColor))
+                if (currentBoard[X, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y + 1], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
                 }
@@ -514,28 +517,16 @@ namespace StudentAI
             // Up
             if (Y > 0)
             {
-                if (currentBoard[X, Y - 1] == ChessPiece.Empty)
+                if (currentBoard[X, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y - 1], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1)));
-                }
-                else if (isEnemy(currentBoard[X, Y - 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1)));
-                }
-                else
-                {
-
                 }
             }
 
             // Right
             if (X < 7)
             {
-                if (currentBoard[X + 1, Y] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y)));
-                }
-                else if (isEnemy(currentBoard[X + 1, Y], myColor))
+                if (currentBoard[X + 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y)));
                 }
@@ -544,11 +535,7 @@ namespace StudentAI
             // Left
             if (X > 0)
             {
-                if (currentBoard[X - 1, Y] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y)));
-                }
-                else if (isEnemy(currentBoard[X - 1, Y], myColor))
+                if (currentBoard[X - 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y)));
                 }
@@ -557,11 +544,7 @@ namespace StudentAI
             // DownRight
             if (Y < 7 && X < 7)
             {
-                if (currentBoard[X + 1, Y + 1] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1)));
-                }
-                else if (isEnemy(currentBoard[X, Y + 1], myColor))
+                if (currentBoard[X + 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y + 1], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1)));
                 }
@@ -570,11 +553,7 @@ namespace StudentAI
             // DownLeft
             if (Y < 7 && X > 0)
             {
-                if (currentBoard[X - 1, Y + 1] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1)));
-                }
-                else if (isEnemy(currentBoard[X, Y + 1], myColor))
+                if (currentBoard[X - 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y + 1], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1)));
                 }
@@ -583,11 +562,7 @@ namespace StudentAI
             // UpRight
             if (Y > 0 && X < 7)
             {
-                if (currentBoard[X + 1, Y - 1] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1)));
-                }
-                else if (isEnemy(currentBoard[X, Y + 1], myColor))
+                if (currentBoard[X + 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y - 1], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1)));
                 }
@@ -596,11 +571,7 @@ namespace StudentAI
             // UpLeft
             if (Y > 0 && X > 0)
             {
-                if (currentBoard[X - 1, Y - 1] == ChessPiece.Empty)
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1)));
-                }
-                else if (isEnemy(currentBoard[X, Y + 1], myColor))
+                if (currentBoard[X - 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y - 1], myColor))
                 {
                     kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1)));
                 }
@@ -609,6 +580,14 @@ namespace StudentAI
             return kingMoves;
         }
 
+        /// <summary>
+        /// This method returns a list of all possible moves the Rook piece make.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <returns></returns>
         private List<ChessMove> GetRookMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> rookMoves = new List<ChessMove>();
@@ -702,6 +681,14 @@ namespace StudentAI
 
         }
 
+        /// <summary>
+        /// This method returns a list of all possible moves the Bishop piece make.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <returns></returns>
         private List<ChessMove> GetBishopMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> bishopMoves = new List<ChessMove>();
@@ -800,6 +787,14 @@ namespace StudentAI
             return bishopMoves;
         }
 
+        /// <summary>
+        /// This method returns a list of all possible moves the Knight piece make.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <returns></returns>
         private List<ChessMove> GetKnightMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> knightMoves = new List<ChessMove>();
@@ -873,6 +868,14 @@ namespace StudentAI
             return knightMoves;
         }
 
+        /// <summary>
+        /// This method returns a list of all possible moves the Pawn piece make.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <returns></returns>
         private List<ChessMove> GetPawnMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> pawnMoves = new List<ChessMove>();
@@ -968,28 +971,6 @@ namespace StudentAI
                 return true;
             }
             return false; //if pieces are same color
-
-            /*List<ChessPiece> enemyPieces;
-
-            if (myColor == ChessColor.White)
-            {
-                enemyPieces = new List<ChessPiece> {ChessPiece.BlackBishop, ChessPiece.BlackKing, ChessPiece.BlackKnight,
-                    ChessPiece.BlackPawn, ChessPiece.BlackQueen, ChessPiece.BlackRook };
-            }
-            else
-            {
-                enemyPieces = new List<ChessPiece> {ChessPiece.WhiteBishop, ChessPiece.WhiteKing, ChessPiece.WhiteKnight,
-                    ChessPiece.WhitePawn, ChessPiece.WhiteQueen, ChessPiece.WhiteRook };
-            }
-
-            if (enemyPieces.Contains(chessPiece))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }*/
         }
 
         #endregion
