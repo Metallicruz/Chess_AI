@@ -993,7 +993,51 @@ namespace StudentAI
         }
 
         #endregion
-        
+
+        #region Methods related to checks on kings
+
+        /// <summary>
+        /// This method determines whether a king is in check
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>returns the king that is in check or empty if neither are in check</returns>
+        private static ChessPiece KingInCheck(ref ChessBoard board)
+        {
+            throw (new NotImplementedException());
+            if (true)
+            {
+                return ChessPiece.WhiteKing;
+            }
+            else if (true)
+            {
+                return ChessPiece.BlackKing;
+            }
+            return ChessPiece.Empty;
+        }
+
+        /// <summary>
+        /// This method determines whether a king is in check more efficiently by factoring in only a single moves impact on board
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="move"></param>
+        /// <returns>returns the king that is in check or empty if neither are in check</returns>
+        private static ChessPiece KingInCheck(ref ChessBoard board, ref ChessMove move)
+        {
+            throw (new NotImplementedException());
+            if (true)
+            {
+                return ChessPiece.WhiteKing;
+            }
+            else if (true)
+            {
+                return ChessPiece.BlackKing;
+            }
+            return ChessPiece.Empty;
+        }
+
+        #endregion
+
         #region Methods to calculate position cost.
 
         /// <summary>
@@ -1072,6 +1116,7 @@ namespace StudentAI
         /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static short CalcDefendedCost(ChessBoard board, ChessColor myColor)
         { // Got through the entire board one tile at a adding up defended pieces
+            throw (new NotImplementedException());
             short cost = 0;
             ChessLocation currentLocation = new ChessLocation(0, 0);
             ChessLocation[] defendedPieces = new ChessLocation[ChessBoard.NumberOfColumns * 4];//board has a max of 4 rows of pieces
@@ -1191,6 +1236,7 @@ namespace StudentAI
         /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static int BishopIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
         { // find which pieces are being defended
+            throw (new NotImplementedException());
             int count = 0;
             int cost = 1;
             return (cost - count);
@@ -1203,6 +1249,7 @@ namespace StudentAI
         /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static int KnightIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
         { // find which pieces are being defended
+            throw (new NotImplementedException());
             int count = 0;
             int cost = 1;
             return (cost - count);
@@ -1215,6 +1262,7 @@ namespace StudentAI
         /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static int RookIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
         { // find which pieces are being defended
+            throw (new NotImplementedException());
             int count = 0;
             int cost = 1;
             return (cost - count);
@@ -1227,6 +1275,7 @@ namespace StudentAI
         /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static int QueenIsDefending(ref ChessBoard board, ref ChessLocation defender, ref ChessLocation[] defending, ref ChessColor color)
         { // find which pieces are being defended
+            throw (new NotImplementedException());
             int count = 0;
             int cost = 1;
             return (cost - count);
@@ -1243,6 +1292,7 @@ namespace StudentAI
         /// <param name="myColor"></param>
         private static void MiniMax(ref DecisionTree tree, ChessColor myColor)
         {
+            throw (new NotImplementedException());
         }
 
         /// <summary>
@@ -1272,9 +1322,10 @@ namespace StudentAI
                         currentValue = CalcPieceCost(board, myColor);
                         break;
                     case Heuristic.Defenders:
-                        //value = CalcDefendedCost(board, myColor);
+                        currentValue = CalcDefendedCost(board, myColor);
                         break;
                     default:
+                        throw (new NotImplementedException());
                         break;
                 }
                 if (currentValue > bestValue)
@@ -1299,6 +1350,7 @@ namespace StudentAI
         /// <returns></returns>
         private static DecisionTree AlphaBetaPruning(ChessBoard board, ChessColor myColor, Heuristic choice)
         { // Got through the entire board one tile at a time adding up piece cost
+            throw (new NotImplementedException());
             return null;
         }
 
