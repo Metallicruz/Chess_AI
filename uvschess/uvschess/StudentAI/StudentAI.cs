@@ -177,24 +177,39 @@ namespace StudentAI
 			if (moveToCheck To results in ChessFlag.Check or ChessFlag.Checkmate for colorOfPlayerMoving) then return false
 			*/
             bool isValid = true;
-            
-			switch (boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y])
-			{
-				case ChessPiece.WhitePawn:
-					//isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+
+            switch (boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y])
+            {
+                case ChessPiece.WhitePawn:
+                case ChessPiece.BlackPawn:
+                    //isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    break;
+                case ChessPiece.WhiteRook:
+                case ChessPiece.BlackRook:
+                    isValid = RookToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    break;
+                case ChessPiece.WhiteKnight:
+                case ChessPiece.BlackKnight:
+                    //isValid = KnightMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    break;
+                case ChessPiece.WhiteBishop:
+                case ChessPiece.BlackBishop:
+                    isValid = BishopToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    break;
+                case ChessPiece.WhiteQueen:
+                case ChessPiece.BlackQueen:
+                    // Queens can make Bishop OR Rook moves. Only one has to return true;
+                    if (BishopToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving) || 
+                        RookToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving))
+                    {
+                        isValid = true;
+                    }
+                    else
+                    {
+                        isValid = false;
+                    }
 					break;
-				case ChessPiece.WhiteRook:
-					isValid = RookToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
-					break;
-				case ChessPiece.WhiteKnight:
-					//isValid = KnightMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
-					break;
-				case ChessPiece.WhiteBishop:
-					isValid = BishopToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
-					break;
-				case ChessPiece.WhiteQueen:
-					//isValid = QueenMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
-					break;
+                case ChessPiece.BlackKing:
 				case ChessPiece.WhiteKing:
 					//isValid = KingMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
@@ -266,7 +281,8 @@ namespace StudentAI
 			if(Math.Abs(targetRow-originRow)!=Math.Abs(targetColumn-originColumn)){ // Not a diagonal movement
 				return false;
 			}
-            if(!isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving)) // Player captured its own piece
+            if(!isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving) && 
+                boardBeforeMove[targetColumn, targetRow] != ChessPiece.Empty) // Player captured its own piece
             {
                 return false;
             }
@@ -331,7 +347,8 @@ namespace StudentAI
             short originColumn = (short)moveToCheck.From.X;
             short targetColumn = (short)moveToCheck.To.X;
 
-            if (!isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving) && boardBeforeMove[targetColumn, targetRow] != ChessPiece.Empty) // Player captured its own piece
+            if (!isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving) && 
+                boardBeforeMove[targetColumn, targetRow] != ChessPiece.Empty) // Player captured its own piece
             {
                 return false;
             }
@@ -379,21 +396,7 @@ namespace StudentAI
             throw (new NotImplementedException());
         }
 
-        /// <summary>
-        /// Contains movement logic for queens.
-        /// </summary>
-        /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
-        /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
-        /// <returns>Returns true if the move was valid</returns>
-        static private bool QueenToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
-        {
-            /*
-			if(bishopMove() || rookMove()){
-				return true;
-			}
-			*/
-            throw (new NotImplementedException());
-        }
+        
 
         /// <summary>
         /// Contains movement logic for kings.
