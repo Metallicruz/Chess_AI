@@ -177,26 +177,26 @@ namespace StudentAI
 			if (moveToCheck To results in ChessFlag.Check or ChessFlag.Checkmate for colorOfPlayerMoving) then return false
 			*/
             bool isValid = true;
-            /*
-			switch (Math.abs(boardBeforeMove[moveToCheck.From().X, moveToCheck.From().Y))
+            
+			switch (boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y])
 			{
 				case ChessPiece.WhitePawn:
-					isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					//isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.WhiteRook:
-					isValid = RookMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					isValid = RookToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.WhiteKnight:
-					isValid = KnightMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					//isValid = KnightMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.WhiteBishop:
-					isValid = BishopMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					isValid = BishopToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.WhiteQueen:
-					isValid = QueenMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					//isValid = QueenMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.WhiteKing:
-					isValid = KingMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					//isValid = KingMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.Empty:
 					isValid = false;
@@ -204,7 +204,7 @@ namespace StudentAI
 				default:
 					throw new Exception("Invalid chess piece");
 			}
-            */
+            
             return isValid;
         }
 
@@ -253,21 +253,29 @@ namespace StudentAI
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool BishopToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
+        static private bool BishopToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
-            /*
+            short originRow = (short)moveToCheck.From.Y;
+            short targetRow = (short)moveToCheck.To.Y;
+            short originColumn = (short)moveToCheck.From.X;
+            short targetColumn = (short)moveToCheck.To.X;
+
 			if(targetRow==originRow||targetColumn==originColumn){//diagonal movement means both row/column will change
 				return false;
 			}
-			if(Math.abs(targetRow-originRow)!=Math.abs(targetColumn-originColumn)){
+			if(Math.Abs(targetRow-originRow)!=Math.Abs(targetColumn-originColumn)){ // Not a diagonal movement
 				return false;
 			}
+            if(!isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving)) // Player captured its own piece
+            {
+                return false;
+            }
 			if(targetRow<originRow){//move upward
 				if(targetColumn>originColumn){//move right
 					var j = originColumn;
 					for(var i=originRow-1;i>targetRow;i--){
 						++j;
-						if(position[gameTurn][i][j]!=undefined){//piece in the way
+						if(boardBeforeMove[j, i]!= ChessPiece.Empty){//piece in the way
 							return false;
 						}
 					}
@@ -276,7 +284,8 @@ namespace StudentAI
 					var j = originColumn;
 					for(var i=originRow-1;i>targetRow;i--){
 						--j;
-						if(position[gameTurn][i][j]!=undefined){//piece in the way
+						if(boardBeforeMove[j, i] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
@@ -287,7 +296,8 @@ namespace StudentAI
 					var j = originColumn;
 					for(var i=originRow+1;i<targetRow;i++){
 						++j;
-						if(position[gameTurn][i][j]!=undefined){//piece in the way
+						if(boardBeforeMove[j, i] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
@@ -296,15 +306,16 @@ namespace StudentAI
 					var j = originColumn;
 					for(var i=originRow+1;i<targetRow;i++){
 						--j;
-						if(position[gameTurn][i][j]!=undefined){//piece in the way
+						if(boardBeforeMove[j, i] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
 					return true;
 				}
 			}
-			*/
-            throw (new NotImplementedException());
+			
+            //throw (new NotImplementedException());
         }
 
         /// <summary>
@@ -313,44 +324,58 @@ namespace StudentAI
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool RookToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
+        static private bool RookToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
+            short originRow = (short)moveToCheck.From.Y;
+            short targetRow = (short)moveToCheck.To.Y;
+            short originColumn = (short)moveToCheck.From.X;
+            short targetColumn = (short)moveToCheck.To.X;
 
-            /*'
-			if(targetRow==originRow){//move sideways
+            if (!isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving) && boardBeforeMove[targetColumn, targetRow] != ChessPiece.Empty) // Player captured its own piece
+            {
+                return false;
+            }
+
+            if (targetRow==originRow){//move sideways
 				if(targetColumn>originColumn){//moving right
-					for(var i=1; i<Math.abs(targetColumn-originColumn); i++){
-						if(position[gameTurn][originRow][originColumn+i]!=undefined){//piece in the way
+					for(var i=1; i<Math.Abs(targetColumn-originColumn); i++){
+						if(boardBeforeMove[originColumn + i, originRow] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
 					return true;
 				}else{//moving left
-					for(var i=1; i<Math.abs(targetColumn-originColumn); i++){
-						if(position[gameTurn][originRow][originColumn-i]!=undefined){//piece in the way
+					for(var i=1; i<Math.Abs(targetColumn-originColumn); i++){
+						if(boardBeforeMove[originColumn - i, originRow] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
 					return true;
 				}
 			}else if(targetColumn==originColumn){//move up/down
-				if(targetRow>originRow){//moving up
-					for(var i=1; i<Math.abs(targetRow-originRow); i++){
-						if(position[gameTurn][originRow+i][originColumn]!=undefined){//piece in the way
+				if(targetRow>originRow){//moving down
+					for(var i=1; i<Math.Abs(targetRow-originRow); i++){
+						if(boardBeforeMove[originColumn, originRow + i] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
 					return true;
-				}else{//moving down
-					for(var i=1; i<Math.abs(targetRow-originRow); i++){
-						if(position[gameTurn][originRow-i][originColumn]!=undefined){//piece in the way
+				}else{//moving up
+					for(var i=1; i<Math.Abs(targetRow-originRow); i++){
+						if(boardBeforeMove[originColumn, originRow - i] != ChessPiece.Empty)
+                        {//piece in the way
 							return false;
 						}
 					}
 					return true;
 				}
-			}	
-			*/
+			}
+
+            return false;
+			
             throw (new NotImplementedException());
         }
 
