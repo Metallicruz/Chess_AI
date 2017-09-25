@@ -23,17 +23,6 @@ namespace StudentAI
         }
 
         /// <summary>
-        /// An enum that represents the different heuristic functions.
-        /// </summary>
-        private enum Heuristic
-        {
-            PieceCost,
-            Defenders,
-            Pin,
-            Fork
-        }
-
-        /// <summary>
         /// Evaluates the chess board and decided which move to make. This is the main method of the AI.
         /// The framework will call this method when it's your turn.
         /// </summary>
@@ -59,15 +48,10 @@ namespace StudentAI
 #endif
 
             ChessMove myNextMove = null;
-
             this.Log($"{IsMyTurnOver()}");
-
             while (!IsMyTurnOver())
             {
-                Random random = new Random();
                 List<ChessMove> allMoves = GetAllMoves(board, myColor);
-                int moveNumber = random.Next(allMoves.Count);
-
                 if (allMoves.Count == 0)
                 {
                     // If I couldn't find a valid move easily, 
@@ -77,90 +61,18 @@ namespace StudentAI
                 }
                 else
                 {
-                    myNextMove = allMoves[moveNumber];
-
+                    myNextMove = Greedy(board, ref allMoves,myColor,Heuristic.PieceCost);
                     AddAllPossibleMovesToDecisionTree(allMoves, myNextMove, board.Clone(), myColor);
                 }
-
                 this.Log(myColor.ToString() + " (" + this.Name + ") just moved.");
                 this.Log(string.Empty);
-
                 // Since I have a move, break out of loop
                 break;
-                // Implement Greedy on all legal moves
             }
-
-            //Profiler.SetDepthReachedDuringThisTurn(2);
+            Profiler.SetDepthReachedDuringThisTurn(2);
             return myNextMove;
         }
 
-        public void AddAllPossibleMovesToDecisionTree(List<ChessMove> allMyMoves, ChessMove myChosenMove,
-                                                      ChessBoard currentBoard, ChessColor myColor)
-        {
-#if DEBUG
-            Profiler.IncrementTagCount((int)StudentAIProfilerTags.AddAllPossibleMovesToDecisionTree);
-#endif
-            Random random = new Random();
-
-            // Create the decision tree object
-            DecisionTree dt = new DecisionTree(currentBoard);
-
-            // Tell UvsChess about the decision tree object
-            SetDecisionTree(dt);
-            dt.BestChildMove = myChosenMove;
-
-            // Go through all of my moves, add them to the decision tree
-            // Then go through each of these moves and generate all of my
-            // opponents moves and add those to the decision tree as well.
-            for (int ix = 0; ix < allMyMoves.Count; ix++)
-            {
-                ChessMove myCurMove = allMyMoves[ix];
-                ChessBoard boardAfterMyCurMove = currentBoard.Clone();
-                boardAfterMyCurMove.MakeMove(myCurMove);
-
-                // Add the new move and board to the decision tree
-                dt.AddChild(boardAfterMyCurMove, myCurMove);
-
-                // Descend the decision tree to the last child added so we can 
-                // add all of the opponents response moves to our move.
-                dt = dt.LastChild;
-
-                // Get all of the opponents response moves to my move
-                ChessColor oppColor = (myColor == ChessColor.White ? ChessColor.Black : ChessColor.White);
-                List<ChessMove> allOppMoves = GetAllMoves(boardAfterMyCurMove, oppColor);
-
-                // Go through all of my opponent moves and add them to the decision tree
-                foreach (ChessMove oppCurMove in allOppMoves)
-                {
-                    ChessBoard boardAfterOppCurMove = boardAfterMyCurMove.Clone();
-                    boardAfterOppCurMove.MakeMove(oppCurMove);
-                    dt.AddChild(boardAfterOppCurMove, oppCurMove);
-
-                    // Setting all of the opponents eventual move values to 0 (see below).
-                    dt.LastChild.EventualMoveValue = "0";
-                }
-
-                if (allOppMoves.Count > 0)
-                {
-                    // Tell the decision tree which move we think our opponent will choose.
-                    int chosenOppMoveNumber = random.Next(allOppMoves.Count);
-                    dt.BestChildMove = allOppMoves[chosenOppMoveNumber];
-                }
-
-                // Tell the decision tree what this moves eventual value will be.
-                // Since this AI can't evaulate anything, I'm just going to set this
-                // value to 0.
-                dt.EventualMoveValue = "0";
-
-                // All of the opponents response moves have been added to this childs move, 
-                // so return to the parent so we can do the loop again for our next move.
-                dt = dt.Parent;
-            }
-        }
-
-        #endregion
-
-        #region Methods to check if a move is valid.
 
         /// <summary>
         /// Validates a move. The framework uses this to validate the opponents move.
@@ -171,13 +83,7 @@ namespace StudentAI
         /// <returns>Returns true if the move was valid</returns>
         public bool IsValidMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
-
-            /*
-			if (the moveToCheck To and From has a piece of same color) then return false
-			if (moveToCheck To results in ChessFlag.Check or ChessFlag.Checkmate for colorOfPlayerMoving) then return false
-			*/
             bool isValid = true;
-
             switch (boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y])
             {
                 case ChessPiece.WhitePawn:
@@ -199,7 +105,7 @@ namespace StudentAI
                 case ChessPiece.WhiteQueen:
                 case ChessPiece.BlackQueen:
                     // Queens can make Bishop OR Rook moves. Only one has to return true;
-                    if (BishopToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving) || 
+                    if (BishopToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving) ||
                         RookToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving))
                     {
                         isValid = true;
@@ -208,22 +114,33 @@ namespace StudentAI
                     {
                         isValid = false;
                     }
-					break;
+                    break;
                 case ChessPiece.BlackKing:
-				case ChessPiece.WhiteKing:
-					isValid = KingToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
-					break;
-				case ChessPiece.Empty:
-					isValid = false;
-					break;
-				default:
-					throw new Exception("Invalid chess piece");
-			}
-            
+                case ChessPiece.WhiteKing:
+                    isValid = KingToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    break;
+                case ChessPiece.Empty:
+                    isValid = false;
+                    break;
+                default:
+                    throw new Exception("Invalid chess piece");
+            }
+            boardBeforeMove.MakeMove(moveToCheck);
+            ChessPiece colorOfKingInCheck = KingInCheck(ref boardBeforeMove);
+            if (colorOfPlayerMoving == ChessColor.White && colorOfKingInCheck == ChessPiece.WhiteKing)//white player can't end turn in check
+            {
+                isValid = false;
+            }
+            else if (colorOfPlayerMoving == ChessColor.Black && colorOfKingInCheck == ChessPiece.BlackKing)//black player can't end turn in check
+            {
+                isValid = false;
+            }
             return isValid;
         }
 
+        #endregion
 
+        #region Methods to check if a move is valid
 
         /// <summary>
         /// Contains movement logic for pawns.
@@ -477,8 +394,71 @@ namespace StudentAI
         }
         #endregion
 
-        #region Methods to generate a list of valid moves.
+        #region Methods to generate a list of valid moves
 
+        public void AddAllPossibleMovesToDecisionTree(List<ChessMove> allMyMoves, ChessMove myChosenMove,
+                                                     ChessBoard currentBoard, ChessColor myColor)
+        {
+#if DEBUG
+            Profiler.IncrementTagCount((int)StudentAIProfilerTags.AddAllPossibleMovesToDecisionTree);
+#endif
+            Random random = new Random();
+
+            // Create the decision tree object
+            DecisionTree dt = new DecisionTree(currentBoard);
+
+            // Tell UvsChess about the decision tree object
+            SetDecisionTree(dt);
+            dt.BestChildMove = myChosenMove;
+
+            // Go through all of my moves, add them to the decision tree
+            // Then go through each of these moves and generate all of my
+            // opponents moves and add those to the decision tree as well.
+            for (int ix = 0; ix < allMyMoves.Count; ix++)
+            {
+                ChessMove myCurMove = allMyMoves[ix];
+                ChessBoard boardAfterMyCurMove = currentBoard.Clone();
+                boardAfterMyCurMove.MakeMove(myCurMove);
+
+                // Add the new move and board to the decision tree
+                dt.AddChild(boardAfterMyCurMove, myCurMove);
+
+                // Descend the decision tree to the last child added so we can 
+                // add all of the opponents response moves to our move.
+                dt = dt.LastChild;
+
+                // Get all of the opponents response moves to my move
+                ChessColor oppColor = (myColor == ChessColor.White ? ChessColor.Black : ChessColor.White);
+                List<ChessMove> allOppMoves = GetAllMoves(boardAfterMyCurMove, oppColor);
+
+                // Go through all of my opponent moves and add them to the decision tree
+                foreach (ChessMove oppCurMove in allOppMoves)
+                {
+                    ChessBoard boardAfterOppCurMove = boardAfterMyCurMove.Clone();
+                    boardAfterOppCurMove.MakeMove(oppCurMove);
+                    dt.AddChild(boardAfterOppCurMove, oppCurMove);
+
+                    // Setting all of the opponents eventual move values to 0 (see below).
+                    dt.LastChild.EventualMoveValue = "0";
+                }
+
+                if (allOppMoves.Count > 0)
+                {
+                    // Tell the decision tree which move we think our opponent will choose.
+                    int chosenOppMoveNumber = random.Next(allOppMoves.Count);
+                    dt.BestChildMove = allOppMoves[chosenOppMoveNumber];
+                }
+
+                // Tell the decision tree what this moves eventual value will be.
+                // Since this AI can't evaulate anything, I'm just going to set this
+                // value to 0.
+                dt.EventualMoveValue = "0";
+
+                // All of the opponents response moves have been added to this childs move, 
+                // so return to the parent so we can do the loop again for our next move.
+                dt = dt.Parent;
+            }
+        }
 
         /// <summary>
         /// This method generates all valid moves for myColor based on the currentBoard
@@ -1057,7 +1037,7 @@ namespace StudentAI
 
         #endregion
 
-        #region Methods related to checks on kings
+        #region Methods that test for check on kings
 
         /// <summary>
         /// This method determines whether a king is in check
@@ -1340,7 +1320,7 @@ namespace StudentAI
                     break;
                 }
             }
-            for (int i = 1; i <= kingPosition.X; ++i)//check up from the king
+            for (int i = 1; i <= kingPosition.Y; ++i)//check up from the king
             {
                 pieceToCheck = board[kingPosition.X, kingPosition.Y-i];//up i squares
                 if (pieceToCheck == ChessPiece.Empty)//don't perform any checks if there is no piece
@@ -1362,7 +1342,7 @@ namespace StudentAI
                     break;
                 }
             }
-            for (int i = 1; i <= (7-kingPosition.X); ++i)//check down from the king
+            for (int i = 1; i <= (7-kingPosition.Y); ++i)//check down from the king
             {
                 pieceToCheck = board[kingPosition.X, kingPosition.Y + i];//down i squares
                 if (pieceToCheck == ChessPiece.Empty)//don't perform any checks if there is no piece
@@ -1478,7 +1458,7 @@ namespace StudentAI
 
         #endregion
 
-            #region Methods to calculate position cost.
+        #region Methods to calculate position cost
 
             /// <summary>
             /// This method determines the total cost of the pieces on board relative to a player color (positive is beneficial)
@@ -1726,6 +1706,17 @@ namespace StudentAI
         #region Search algorithms and heuristic functions
 
         /// <summary>
+        /// An enum that represents the different heuristic functions.
+        /// </summary>
+        private enum Heuristic
+        {
+            PieceCost,
+            Defenders,
+            Pin,
+            Fork
+        }
+
+        /// <summary>
         /// This method determines the best move for current tree based off min and max values
         /// </summary>
         /// <param name="tree"></param>
@@ -1744,13 +1735,44 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="choice"></param>
         /// <returns></returns>
-        private static ChessMove Greedy(ChessBoard board, ref List<ChessMove> moves, ref DecisionTree tree, ChessColor myColor, Heuristic choice)
+        private static ChessMove Greedy(ChessBoard board, ref List<ChessMove> moves, ChessColor myColor, Heuristic choice)
         {
             int currentValue = 0;
             int bestValue = 0;
-            ChessMove bestMove = null;
+            Random random = new Random();
+            ChessMove bestMove;
             ChessPiece tempPieceTo;
             ChessPiece tempPieceFrom;
+            ChessPiece myKing;
+            ChessPiece kingInCheck = ChessPiece.Empty;
+            if (myColor == ChessColor.White) { myKing = ChessPiece.WhiteKing; }
+            else { myKing = ChessPiece.BlackKing; }
+
+            do//pick a random move to initialize bestMove but make sure it doesn't put our king in check
+            {
+                int randomValue = random.Next(moves.Count) % moves.Count;
+                bestMove = moves[randomValue];
+                tempPieceTo = board[bestMove.To];// save previous board state piece to move to
+                tempPieceFrom = board[bestMove.From];// save previous board state piece to be moved
+                board.MakeMove(bestMove);//make temporary move
+                if(KingInCheck(ref board) != myKing)//if my king isn't in check
+                {
+                    //restore board to original state
+                    board[bestMove.To] = tempPieceTo;
+                    board[bestMove.From] = tempPieceFrom;
+                    break;//break out of loop
+                }
+                //restore board to original state
+                board[bestMove.To] = tempPieceTo;
+                board[bestMove.From] = tempPieceFrom;
+                moves.RemoveAt(randomValue);//remove move that puts me into check
+                if (moves.Count == 0)//no moves will remove check
+                {
+                    bestMove.Flag = ChessFlag.Checkmate;
+                    return bestMove;
+                }
+            } while (true);//repeat until our king isn't in check
+
             foreach (ChessMove move in moves)
             {
                 tempPieceTo = board[move.To];// save previous board state piece to move to
@@ -1758,20 +1780,35 @@ namespace StudentAI
                 board.MakeMove(move);//make temporary move
                 switch (choice)
                 {
-                    case Heuristic.PieceCost:
+                    case Heuristic.PieceCost://adds up the value of pieces on board for each player
                         currentValue = CalcPieceCost(board, myColor);
                         break;
                     case Heuristic.Defenders:
-                        currentValue = CalcDefendedCost(board, myColor);
+                        currentValue = CalcDefendedCost(board, myColor);//adds up defended pieces for each player
                         break;
                     default:
                         throw (new NotImplementedException());
-                        break;
                 }
-                if (currentValue > bestValue)
+                if(moves.Count < 10 || currentValue > 15)//if we are very ahead in pieces or have very few moves available then it's close to endgame
                 {
-                    bestValue = currentValue;
-                    bestMove = move;
+                    kingInCheck = KingInCheck(ref board);//so see if current move puts enemy into check
+                    if(kingInCheck!= myKing && kingInCheck != ChessPiece.Empty)//if enemy king is in check with current move
+                    {
+                        ++currentValue;//make this move worth more
+                    }
+                }
+                if (currentValue > bestValue)//position is better than previously checked postions
+                {
+                    kingInCheck = KingInCheck(ref board);
+                    if (kingInCheck == myKing)//make sure we aren't in check
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        bestValue = currentValue;
+                        bestMove = move;
+                    }
                 }
                 //restore board to original state
                 board[move.To] = tempPieceTo;
