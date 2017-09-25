@@ -1040,7 +1040,7 @@ namespace StudentAI
         #region Methods that test for check on kings
 
         /// <summary>
-        /// This method determines whether a king is in check
+        /// This method determines whether any king is in check
         /// </summary>
         /// <param name="chessPiece"></param>
         /// <param name="myColor"></param>
@@ -1076,6 +1076,40 @@ namespace StudentAI
                 }
             }
             return ChessPiece.Empty;
+        } 
+        
+        /// <summary>
+        /// This method determines whether a specific king is in check
+        /// </summary>
+        /// <param name="chessPiece"></param>
+        /// <param name="myColor"></param>
+        /// <returns>returns the king that is in check or empty if neither are in check</returns>
+        private static bool KingInCheck(ref ChessBoard board, ChessPiece kingToCheck)
+        {
+            // Go through the entire board one tile until specific king is found
+            for (int Y = 0; Y < ChessBoard.NumberOfRows; Y++)
+            {
+                for (int X = 0; X < ChessBoard.NumberOfColumns; X++)
+                {
+                    if (board[X, Y] == kingToCheck)//king is found
+                    {
+                        if (CheckDiagonal(ref board, new ChessLocation(X, Y)))//test its diagonals for check
+                        {
+                            return true;
+                        }
+                        if (CheckHorizontalAndVertical(ref board, new ChessLocation(X, Y)))//test the horizontals and verticals for check
+                        {
+                            return true;
+                        }
+                        if (CheckFromKnight(ref board, new ChessLocation(X, Y)))//test for tricky knight checks
+                        {
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -1189,11 +1223,11 @@ namespace StudentAI
                         {
                             return true;
                         }
-                        diagonalUpSafe = true;//enemy piece can't capture on diagonal and is blocking it
+                        diagonalDownSafe = true;//enemy piece can't capture on diagonal and is blocking it
                     }
                     else//friendly piece blocking diagonal means it's safe
                     {
-                        diagonalUpSafe = true;
+                        diagonalDownSafe = true;
                     }
                 }
             }
@@ -1242,11 +1276,11 @@ namespace StudentAI
                         {
                             return true;
                         }
-                        diagonalUpSafe = true;//enemy piece can't capture on diagonal and is blocking it
+                        diagonalDownSafe = true;//enemy piece can't capture on diagonal and is blocking it
                     }
                     else//friendly piece blocking diagonal means it's safe
                     {
-                        diagonalUpSafe = true;
+                        diagonalDownSafe = true;
                     }
                 }
             }
@@ -1292,6 +1326,7 @@ namespace StudentAI
                     {
                         return true;
                     }
+                    break;//enemy piece blocking rest of squares in that direction
                 }
                 else//friendly piece blocking left means the rest of squares in that direction are safe
                 {
@@ -1314,6 +1349,7 @@ namespace StudentAI
                     {
                         return true;
                     }
+                    break;//enemy piece blocking rest of squares in that direction
                 }
                 else//friendly piece blocking left means the rest of squares in that direction are safe
                 {
@@ -1336,6 +1372,7 @@ namespace StudentAI
                     {
                         return true;
                     }
+                    break;//enemy piece blocking rest of squares in that direction
                 }
                 else//friendly piece blocking left means the rest of squares in that direction are safe
                 {
@@ -1358,6 +1395,7 @@ namespace StudentAI
                     {
                         return true;
                     }
+                    break;//enemy piece blocking rest of squares in that direction
                 }
                 else//friendly piece blocking left means the rest of squares in that direction are safe
                 {
@@ -1747,7 +1785,6 @@ namespace StudentAI
             ChessPiece kingInCheck = ChessPiece.Empty;
             if (myColor == ChessColor.White) { myKing = ChessPiece.WhiteKing; }
             else { myKing = ChessPiece.BlackKing; }
-
             do//pick a random move to initialize bestMove but make sure it doesn't put our king in check
             {
                 int randomValue = random.Next(moves.Count) % moves.Count;
@@ -1755,7 +1792,7 @@ namespace StudentAI
                 tempPieceTo = board[bestMove.To];// save previous board state piece to move to
                 tempPieceFrom = board[bestMove.From];// save previous board state piece to be moved
                 board.MakeMove(bestMove);//make temporary move
-                if(KingInCheck(ref board) != myKing)//if my king isn't in check
+                if(KingInCheck(ref board, myKing) == false)//if my king isn't in check
                 {
                     //restore board to original state
                     board[bestMove.To] = tempPieceTo;
@@ -1778,6 +1815,13 @@ namespace StudentAI
                 tempPieceTo = board[move.To];// save previous board state piece to move to
                 tempPieceFrom = board[move.From];// save previous board state piece to be moved
                 board.MakeMove(move);//make temporary move
+                if (KingInCheck(ref board, myKing))//if my king is in check
+                {
+                    //restore board to original state
+                    board[move.To] = tempPieceTo;
+                    board[move.From] = tempPieceFrom;
+                    continue;
+                }
                 switch (choice)
                 {
                     case Heuristic.PieceCost://adds up the value of pieces on board for each player
@@ -1802,12 +1846,19 @@ namespace StudentAI
                     kingInCheck = KingInCheck(ref board);
                     if (kingInCheck == myKing)//make sure we aren't in check
                     {
+                        //restore board to original state
+                        board[move.To] = tempPieceTo;
+                        board[move.From] = tempPieceFrom;
                         continue;
                     }
                     else
                     {
                         bestValue = currentValue;
                         bestMove = move;
+                        if (kingInCheck != ChessPiece.Empty)
+                        {
+                            bestMove.Flag = ChessFlag.Check;
+                        }
                     }
                 }
                 //restore board to original state
