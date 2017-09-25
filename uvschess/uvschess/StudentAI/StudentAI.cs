@@ -1067,17 +1067,31 @@ namespace StudentAI
         /// <returns>returns the king that is in check or empty if neither are in check</returns>
         private static ChessPiece KingInCheck(ref ChessBoard board)
         {
+            short kingsChecked = 0;
             // Go through the entire board one tile until both kings are found
             for (int Y = 0; Y < ChessBoard.NumberOfRows; Y++)
             {
                 for (int X = 0; X < ChessBoard.NumberOfColumns; X++)
                 {
-                    if (board[X, Y] == ChessPiece.WhiteKing || board[X, Y] == ChessPiece.BlackKing)
+                    if (kingsChecked >= 2)//there are always only 2 kings so return if both have been checked
                     {
-                        if(DiagonalCheck(ref board, new ChessLocation(X, Y)))
+                        return ChessPiece.Empty;
+                    }
+                    if (board[X, Y] == ChessPiece.WhiteKing || board[X, Y] == ChessPiece.BlackKing)//a king is found
+                    {
+                        if(CheckDiagonal(ref board, new ChessLocation(X, Y)))//test its diagonals for check
                         {
                             return board[X,Y];
                         }
+                        if(CheckHorizontalAndVertical(ref board, new ChessLocation(X, Y)))//test the horizontals and verticals for check
+                        {
+                            return board[X,Y];
+                        }
+                        if(CheckFromKnight(ref board, new ChessLocation(X, Y)))//test for tricky knight checks
+                        {
+                            return board[X,Y];
+                        }
+                        ++kingsChecked;
                     }
                 }
             }
@@ -1105,12 +1119,12 @@ namespace StudentAI
         }
 
         /// <summary>
-        /// This method checks the diagonals of a king to see if there is check from a pawn, bishop, or queen
+        /// This method tests the diagonals of a king to see if there is check from a pawn, bishop, or queen
         /// </summary>
         /// <param name="board"></param>
         /// <param name="kingPosition"></param>
         /// <returns>true if the king is in check or false if he is not</returns>
-        private static bool DiagonalCheck(ref ChessBoard board, ChessLocation kingPosition)
+        private static bool CheckDiagonal(ref ChessBoard board, ChessLocation kingPosition)
         {
             ChessColor colorOfKing;
             ChessPiece pieceToCheck;
@@ -1257,6 +1271,209 @@ namespace StudentAI
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// This method tests the horiztonal and vertical lines of a king to see if there is check from a rook or queen
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="kingPosition"></param>
+        /// <returns>true if the king is in check or false if he is not</returns>
+        private static bool CheckHorizontalAndVertical(ref ChessBoard board, ChessLocation kingPosition)
+        {
+            ChessColor colorOfKing;
+            ChessPiece pieceToCheck;
+            if (board[kingPosition] == ChessPiece.Empty)
+            {
+                throw new Exception("No piece found.");
+            }
+            else if (board[kingPosition] > ChessPiece.Empty)//white king
+            {
+                colorOfKing = ChessColor.White;
+            }
+            else//black king
+            {
+                colorOfKing = ChessColor.Black;
+            }
+
+            for (int i = 1; i <= kingPosition.X; ++i)//check left of king
+            {
+                pieceToCheck = board[kingPosition.X - i, kingPosition.Y];//to the left i squares
+                if (pieceToCheck == ChessPiece.Empty)//don't perform any checks if there is no piece
+                {
+                    continue;
+                }
+                else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                {
+                    if (pieceToCheck == ChessPiece.BlackRook //if the enemy piece is a bishop there is check
+                        || pieceToCheck == ChessPiece.WhiteRook
+                        || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                        || pieceToCheck == ChessPiece.BlackQueen)
+                    {
+                        return true;
+                    }
+                }
+                else//friendly piece blocking left means the rest of squares in that direction are safe
+                {
+                    break;
+                }
+            }
+            for (int i = 1; i <= (7-kingPosition.X); ++i)//check right of king
+            {
+                pieceToCheck = board[kingPosition.X + i, kingPosition.Y];//to the right i squares
+                if (pieceToCheck == ChessPiece.Empty)//don't perform any checks if there is no piece
+                {
+                    continue;
+                }
+                else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                {
+                    if (pieceToCheck == ChessPiece.BlackRook //if the enemy piece is a bishop there is check
+                        || pieceToCheck == ChessPiece.WhiteRook
+                        || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                        || pieceToCheck == ChessPiece.BlackQueen)
+                    {
+                        return true;
+                    }
+                }
+                else//friendly piece blocking left means the rest of squares in that direction are safe
+                {
+                    break;
+                }
+            }
+            for (int i = 1; i <= kingPosition.X; ++i)//check up from the king
+            {
+                pieceToCheck = board[kingPosition.X, kingPosition.Y-i];//up i squares
+                if (pieceToCheck == ChessPiece.Empty)//don't perform any checks if there is no piece
+                {
+                    continue;
+                }
+                else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                {
+                    if (pieceToCheck == ChessPiece.BlackRook //if the enemy piece is a bishop there is check
+                        || pieceToCheck == ChessPiece.WhiteRook
+                        || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                        || pieceToCheck == ChessPiece.BlackQueen)
+                    {
+                        return true;
+                    }
+                }
+                else//friendly piece blocking left means the rest of squares in that direction are safe
+                {
+                    break;
+                }
+            }
+            for (int i = 1; i <= (7-kingPosition.X); ++i)//check down from the king
+            {
+                pieceToCheck = board[kingPosition.X, kingPosition.Y + i];//down i squares
+                if (pieceToCheck == ChessPiece.Empty)//don't perform any checks if there is no piece
+                {
+                    continue;
+                }
+                else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                {
+                    if (pieceToCheck == ChessPiece.BlackRook //if the enemy piece is a bishop there is check
+                        || pieceToCheck == ChessPiece.WhiteRook
+                        || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                        || pieceToCheck == ChessPiece.BlackQueen)
+                    {
+                        return true;
+                    }
+                }
+                else//friendly piece blocking left means the rest of squares in that direction are safe
+                {
+                    break;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// This method test for tricky knights giving check
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="kingPosition"></param>
+        /// <returns>true if the king is in check or false if he is not</returns>
+        private static bool CheckFromKnight(ref ChessBoard board, ChessLocation kingPosition)
+        {
+            int offsetX = 1;
+            int offsetY = 2;
+            ChessLocation locationToTest;
+            if (board[kingPosition] == ChessPiece.Empty)
+            {
+                throw new Exception("No piece found.");
+            }
+            else if (board[kingPosition] > ChessPiece.Empty)//white king
+            {
+                locationToTest = new ChessLocation(kingPosition.X + offsetX, kingPosition.Y + offsetY);
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)){ return true; }//check offset +1,+2
+                locationToTest.X = kingPosition.X + offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset +1,-2
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset -1,-2
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y + offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset -1,+2
+
+                offsetX = 2;//switch the offsets
+                offsetY = 1;
+
+                locationToTest.X = kingPosition.X + offsetX;
+                locationToTest.Y = kingPosition.Y + offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset +2,+1
+                locationToTest.X = kingPosition.X + offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset +2,-1
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset -2,-1
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y + offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.BlackKnight)) { return true; }//check offset -2,+1
+            }
+            else//black king
+            {
+                locationToTest = new ChessLocation(kingPosition.X + offsetX, kingPosition.Y + offsetY);
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset +1,+2
+                locationToTest.X = kingPosition.X + offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset +1,-2
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset -1,-2
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y + offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset -1,+2
+
+                offsetX = 2;//switch the offsets
+                offsetY = 1;
+
+                locationToTest.X = kingPosition.X + offsetX;
+                locationToTest.Y = kingPosition.Y + offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset +2,+1
+                locationToTest.X = kingPosition.X + offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset +2,-1
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y - offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset -2,-1
+                locationToTest.X = kingPosition.X - offsetX;
+                locationToTest.Y = kingPosition.Y + offsetY;
+                if (validLocation(ref locationToTest) && (board[locationToTest] == ChessPiece.WhiteKnight)) { return true; }//check offset -2,+1
+            }
+            return false;
+        }
+        /// <summary>
+        /// This method checks if a location is is valid (on the board)
+        /// </summary>
+        /// <param name="location"></param>
+        /// <returns>true if X and Y coordinates are valid</returns>
+        private static bool validLocation(ref ChessLocation location)
+        {
+            if (location.X < 0 || location.X > 7) { return false; }
+            if (location.Y < 0 || location.Y > 7) { return false; }
+            return true;
         }
 
         #endregion
