@@ -182,7 +182,7 @@ namespace StudentAI
             {
                 case ChessPiece.WhitePawn:
                 case ChessPiece.BlackPawn:
-                    isValid = PawnToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    isValid = PawnToMove(boardBeforeMove, moveToCheck);
                     break;
                 case ChessPiece.WhiteRook:
                 case ChessPiece.BlackRook:
@@ -231,77 +231,67 @@ namespace StudentAI
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool PawnToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
+        static private bool PawnToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
         {
             short originRow = (short)moveToCheck.From.Y;
             short targetRow = (short)moveToCheck.To.Y;
             short originColumn = (short)moveToCheck.From.X;
             short targetColumn = (short)moveToCheck.To.X;
-
-            switch (colorOfPlayerMoving)
+            if(boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] == ChessPiece.Empty)
             {
-                case ChessColor.White:
-                    if (originRow == 6 &&
-                        targetRow == 4 &&
-                        originColumn == targetColumn && 
-                        boardBeforeMove[originColumn, originRow - 1] == ChessPiece.Empty &&
-                        boardBeforeMove[originColumn, originRow - 2] == ChessPiece.Empty)
-                    {// If moving from start position and nothing is blocking it, it can move 2 spaces forward
-                        return true;
-                    }
-
-                    if (boardBeforeMove[originColumn, originRow - 1] == ChessPiece.Empty && 
-                        targetRow == originRow - 1 && 
-                        originColumn == targetColumn)
-                    {// If moving one space forward and that space is empty
-                        return true;
-                    }
-
-                    if(Math.Abs(targetColumn-originColumn) == 1 && 
-                        (originRow-targetRow) == 1 && 
-                        isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving))
-                    {// If capturing diagonally, moving forward, and an enemy is on that tile
-                        return true;
-                    }
-                    break;
-
-                case ChessColor.Black:
-                    if (originRow == 1 &&
-                        targetRow == 3 &&
-                        originColumn == targetColumn &&
-                        boardBeforeMove[originColumn, originRow + 1] == ChessPiece.Empty &&
-                        boardBeforeMove[originColumn, originRow + 2] == ChessPiece.Empty)
-                    {// If moving from start position and nothing is blocking it, it can move 2 spaces forward
-                        return true;
-                    }
-
-                    if (boardBeforeMove[originColumn, originRow + 1] == ChessPiece.Empty &&
-                        targetRow == originRow + 1 &&
-                        originColumn == targetColumn)
-                    {// If moving one space forward and that space is empty
-                        return true;
-                    }
-
-                    if (Math.Abs(targetColumn - originColumn) == 1 && 
-                        (originRow - targetRow) == -1 && 
-                        isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving))
-                    {// If capturing diagonally, moving forward, and an enemy is on that tile
-                        return true;
-                    }
-                    break;
-
-                default:
-                    throw new Exception("Could not determine Player color.");
+                throw new Exception("No piece found.");
             }
-            if (moveToCheck.From.Y == 6 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] > 0) {// starting 2nd row and is white
+            else if (boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] > ChessPiece.Empty)//white piece
+            {
+                if (originRow == 6 &&
+                    targetRow == 4 &&
+                    originColumn == targetColumn &&
+                    boardBeforeMove[originColumn, originRow - 1] == ChessPiece.Empty &&
+                    boardBeforeMove[originColumn, originRow - 2] == ChessPiece.Empty)
+                {// If moving from start position and nothing is blocking it, it can move 2 spaces forward
+                    return true;
+                }
 
+                if (boardBeforeMove[originColumn, originRow - 1] == ChessPiece.Empty &&
+                    targetRow == originRow - 1 &&
+                    originColumn == targetColumn)
+                {// If moving one space forward and that space is empty
+                    return true;
+                }
+
+                if (Math.Abs(targetColumn - originColumn) == 1 &&
+                    (originRow - targetRow) == 1 &&
+                    isEnemy(boardBeforeMove[targetColumn, targetRow], ChessColor.White))
+                {// If capturing diagonally, moving forward, and an enemy is on that tile
+                    return true;
+                }
             }
-            else if (moveToCheck.From.Y == 1 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] < 0) {//starting from 7th row
+            else//black piece
+            {
+                if (originRow == 1 &&
+                    targetRow == 3 &&
+                    originColumn == targetColumn &&
+                    boardBeforeMove[originColumn, originRow + 1] == ChessPiece.Empty &&
+                    boardBeforeMove[originColumn, originRow + 2] == ChessPiece.Empty)
+                {// If moving from start position and nothing is blocking it, it can move 2 spaces forward
+                    return true;
+                }
 
+                if (boardBeforeMove[originColumn, originRow + 1] == ChessPiece.Empty &&
+                    targetRow == originRow + 1 &&
+                    originColumn == targetColumn)
+                {// If moving one space forward and that space is empty
+                    return true;
+                }
+
+                if (Math.Abs(targetColumn - originColumn) == 1 &&
+                    (originRow - targetRow) == -1 &&
+                    isEnemy(boardBeforeMove[targetColumn, targetRow], ChessColor.Black))
+                {// If capturing diagonally, moving forward, and an enemy is on that tile
+                    return true;
+                }
             }
-
             return false;
-            throw (new NotImplementedException());
         }
 
         /// <summary>
@@ -315,8 +305,15 @@ namespace StudentAI
             //offset 2 in one direction 1 in the other
             int offsetX=Math.Abs(moveToCheck.To.X - moveToCheck.From.X);
 			int offsetY=Math.Abs(moveToCheck.To.Y - moveToCheck.From.Y);
-			if(offsetX==1 || offsetY==1){
-				if(offsetX==2 || offsetY==2){
+            if (boardBeforeMove[moveToCheck.From] == ChessPiece.Empty)//no piece
+            {
+                throw new Exception("No piece found.");
+            }
+			if((offsetX==1 || offsetY==1) && (offsetX == 2 || offsetY == 2))
+            {
+			    if(boardBeforeMove[moveToCheck.To] == ChessPiece.Empty ||
+                    isEnemy(boardBeforeMove[moveToCheck.To.X,moveToCheck.To.Y], colorOfPlayerMoving))
+                {
 					return true;
 				}
 			}
@@ -324,7 +321,7 @@ namespace StudentAI
         }
 
         /// <summary>
-        /// Contains movement logic for knights.
+        /// Contains movement logic for bishops
         /// </summary>
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
@@ -451,10 +448,7 @@ namespace StudentAI
 					return true;
 				}
 			}
-
             return false;
-			
-            throw (new NotImplementedException());
         }
 
         
@@ -467,28 +461,19 @@ namespace StudentAI
         /// <returns>Returns true if the move was valid</returns>
         private bool KingToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
-            short originRow = (short)moveToCheck.From.Y;
-            short targetRow = (short)moveToCheck.To.Y;
-            short originColumn = (short)moveToCheck.From.X;
-            short targetColumn = (short)moveToCheck.To.X;
-
-            var offsetX = Math.Abs(targetColumn-originColumn);
-			var offsetY = Math.Abs(targetRow-originRow);
+            int offsetX = Math.Abs(moveToCheck.To.X - moveToCheck.From.X);
+			int offsetY = Math.Abs(moveToCheck.To.Y - moveToCheck.From.Y);
 
 			if(offsetX>1 || offsetY>1) // Can only move at most 1 in each direction
             {
 				return false;
 			}
-
-            if(boardBeforeMove[targetColumn, targetRow] == ChessPiece.Empty 
-                || isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving))
+            if(boardBeforeMove[moveToCheck.To] == ChessPiece.Empty 
+                || isEnemy(boardBeforeMove[moveToCheck.To], colorOfPlayerMoving))
             {// Destination must be empty or have an enemy piece
                 return true;
             }
-			
 			return false;
-			
-            throw (new NotImplementedException());
         }
         #endregion
 
@@ -1082,14 +1067,19 @@ namespace StudentAI
         /// <returns>returns the king that is in check or empty if neither are in check</returns>
         private static ChessPiece KingInCheck(ref ChessBoard board)
         {
-            throw (new NotImplementedException());
-            if (true)
+            // Go through the entire board one tile until both kings are found
+            for (int Y = 0; Y < ChessBoard.NumberOfRows; Y++)
             {
-                return ChessPiece.WhiteKing;
-            }
-            else if (true)
-            {
-                return ChessPiece.BlackKing;
+                for (int X = 0; X < ChessBoard.NumberOfColumns; X++)
+                {
+                    if (board[X, Y] == ChessPiece.WhiteKing || board[X, Y] == ChessPiece.BlackKing)
+                    {
+                        if(DiagonalCheck(ref board, new ChessLocation(X, Y)))
+                        {
+                            return board[X,Y];
+                        }
+                    }
+                }
             }
             return ChessPiece.Empty;
         }
@@ -1114,16 +1104,171 @@ namespace StudentAI
             return ChessPiece.Empty;
         }
 
+        /// <summary>
+        /// This method checks the diagonals of a king to see if there is check from a pawn, bishop, or queen
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="kingPosition"></param>
+        /// <returns>true if the king is in check or false if he is not</returns>
+        private static bool DiagonalCheck(ref ChessBoard board, ChessLocation kingPosition)
+        {
+            ChessColor colorOfKing;
+            ChessPiece pieceToCheck;
+            bool diagonalUpSafe = false;
+            bool diagonalDownSafe = false;
+            if (board[kingPosition] == ChessPiece.Empty)
+            {
+                throw new Exception("No piece found.");
+            }
+            else if (board[kingPosition] > ChessPiece.Empty)//white king
+            {
+                colorOfKing = ChessColor.White;
+                if (kingPosition.X - 1 >= 0//if upleft from white king is in board boundaries
+                && kingPosition.Y - 1 >= 0
+                && board[kingPosition.X - 1, kingPosition.Y - 1] == ChessPiece.BlackPawn)//if it's an enemy black pawn
+                {
+                    return true;//check
+                }
+                if (kingPosition.X + 1 <= 7//if upright from white king is in board boundaries
+                && kingPosition.Y - 1 >= 0
+                && board[kingPosition.X + 1, kingPosition.Y - 1] == ChessPiece.BlackPawn)//if it's an enemy black pawn
+                {
+                    return true;//check
+                }
+            }
+            else//black king
+            {
+                colorOfKing = ChessColor.Black;
+                if (kingPosition.X - 1 >= 0//if downleft from black king is in board boundaries
+                && kingPosition.Y + 1 <= 7
+                && board[kingPosition.X - 1, kingPosition.Y + 1] == ChessPiece.WhitePawn)//if it's an enemy white pawn
+                {
+                    return true;//check
+                }
+                if (kingPosition.X + 1 <= 7//if downright from black king is in board boundaries
+                && kingPosition.Y + 1 <= 7
+                && board[kingPosition.X + 1, kingPosition.Y + 1] == ChessPiece.WhitePawn)//if it's an enemy white pawn
+                {
+                    return true;//check
+                }
+            }
+
+            for(int i = 1; i <= kingPosition.X; ++i)//check two diagonals left of king
+            {
+                if(diagonalUpSafe && diagonalDownSafe)//if both diagonals are being blocked no need to check more squares
+                {
+                    break;
+                }
+                if(diagonalUpSafe == false && (kingPosition.Y-i) >= 0)//Y within top of board and more squares on this diagonal need to checked
+                {
+                    pieceToCheck = board[kingPosition.X - i, kingPosition.Y - i];//up and to the left
+                    if (pieceToCheck == ChessPiece.Empty) { }//don't perform any checks if there is no piece
+                    else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                    {
+                        if(pieceToCheck == ChessPiece.BlackBishop //if the enemy piece is a bishop there is check
+                            || pieceToCheck == ChessPiece.WhiteBishop
+                            || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                            || pieceToCheck == ChessPiece.BlackQueen)
+                        {
+                            return true;
+                        }
+                        diagonalUpSafe = true;//enemy piece can't capture on diagonal and is blocking it
+                    }
+                    else//friendly piece blocking diagonal means it's safe
+                    {
+                        diagonalUpSafe = true;
+                    }
+                }
+                if (diagonalDownSafe == false && (kingPosition.Y + i) <= 7)//Y within bottom of board and more squares on this diagonal need to checked
+                {
+                    pieceToCheck = board[kingPosition.X - i, kingPosition.Y + i];//down and to the left
+                    if (pieceToCheck == ChessPiece.Empty)
+                    {
+                        continue;
+                    }
+                    else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                    {
+                        if (pieceToCheck == ChessPiece.BlackBishop //if the enemy piece is a bishop there is check
+                            || pieceToCheck == ChessPiece.WhiteBishop
+                            || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                            || pieceToCheck == ChessPiece.BlackQueen)
+                        {
+                            return true;
+                        }
+                        diagonalUpSafe = true;//enemy piece can't capture on diagonal and is blocking it
+                    }
+                    else//friendly piece blocking diagonal means it's safe
+                    {
+                        diagonalUpSafe = true;
+                    }
+                }
+            }
+
+            diagonalUpSafe = false;
+            diagonalDownSafe = false;
+            for (int i = 1; i <= (7-kingPosition.X); ++i)//check two diagonals right of king
+            {
+                if (diagonalUpSafe && diagonalDownSafe)//if both diagonals are being blocked no need to check more squares
+                {
+                    break;
+                }
+                if (diagonalUpSafe == false && (kingPosition.Y - i) >= 0)//Y within top of board and more squares on this diagonal need to checked
+                {
+                    pieceToCheck = board[kingPosition.X + i, kingPosition.Y - i];//up and to the right
+                    if (pieceToCheck == ChessPiece.Empty) { }//don't perform any checks if there is no piece
+                    else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                    {
+                        if (pieceToCheck == ChessPiece.BlackBishop //if the enemy piece is a bishop there is check
+                            || pieceToCheck == ChessPiece.WhiteBishop
+                            || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                            || pieceToCheck == ChessPiece.BlackQueen)
+                        {
+                            return true;
+                        }
+                        diagonalUpSafe = true;//enemy piece can't capture on diagonal and is blocking it
+                    }
+                    else//friendly piece blocking diagonal means it's safe
+                    {
+                        diagonalUpSafe = true;
+                    }
+                }
+                if (diagonalDownSafe == false && (kingPosition.Y + i) <= 7)//Y within bottom of board and more squares on this diagonal need to checked
+                {
+                    pieceToCheck = board[kingPosition.X + i, kingPosition.Y + i];//down and to the right
+                    if (pieceToCheck == ChessPiece.Empty)//no checks needed if there is no piece
+                    {
+                        continue;
+                    }
+                    else if (isEnemy(pieceToCheck, colorOfKing))//encounter enemy piece
+                    {
+                        if (pieceToCheck == ChessPiece.BlackBishop //if the enemy piece is a bishop there is check
+                            || pieceToCheck == ChessPiece.WhiteBishop
+                            || pieceToCheck == ChessPiece.WhiteQueen//if the enemy piece is a queen there is check
+                            || pieceToCheck == ChessPiece.BlackQueen)
+                        {
+                            return true;
+                        }
+                        diagonalUpSafe = true;//enemy piece can't capture on diagonal and is blocking it
+                    }
+                    else//friendly piece blocking diagonal means it's safe
+                    {
+                        diagonalUpSafe = true;
+                    }
+                }
+            }
+            return false;
+        }
+
         #endregion
 
-        #region Methods to calculate position cost.
+            #region Methods to calculate position cost.
 
-        /// <summary>
-        /// This method determines the total cost of the pieces on board relative to a player color (positive is beneficial)
-        /// </summary>
-        /// <param name="chessPiece"></param>
-        /// <param name="myColor"></param>
-        /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
+            /// <summary>
+            /// This method determines the total cost of the pieces on board relative to a player color (positive is beneficial)
+            /// </summary>
+            /// <param name="chessPiece"></param>
+            /// <param name="myColor"></param>
+            /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
         private static short CalcPieceCost(ChessBoard board, ChessColor myColor)
         { // Got through the entire board one tile at a time adding up piece cost
             short cost = 0;
