@@ -182,7 +182,7 @@ namespace StudentAI
             {
                 case ChessPiece.WhitePawn:
                 case ChessPiece.BlackPawn:
-                    //isValid = PawnMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    isValid = PawnToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
                     break;
                 case ChessPiece.WhiteRook:
                 case ChessPiece.BlackRook:
@@ -190,7 +190,7 @@ namespace StudentAI
                     break;
                 case ChessPiece.WhiteKnight:
                 case ChessPiece.BlackKnight:
-                    //isValid = KnightMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+                    isValid = KnightToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
                     break;
                 case ChessPiece.WhiteBishop:
                 case ChessPiece.BlackBishop:
@@ -211,7 +211,7 @@ namespace StudentAI
 					break;
                 case ChessPiece.BlackKing:
 				case ChessPiece.WhiteKing:
-					//isValid = KingMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
+					isValid = KingToMove(boardBeforeMove, moveToCheck, colorOfPlayerMoving);
 					break;
 				case ChessPiece.Empty:
 					isValid = false;
@@ -231,8 +231,68 @@ namespace StudentAI
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool PawnToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
+        static private bool PawnToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
+            short originRow = (short)moveToCheck.From.Y;
+            short targetRow = (short)moveToCheck.To.Y;
+            short originColumn = (short)moveToCheck.From.X;
+            short targetColumn = (short)moveToCheck.To.X;
+
+            switch (colorOfPlayerMoving)
+            {
+                case ChessColor.White:
+                    if (originRow == 6 &&
+                        targetRow == 4 &&
+                        originColumn == targetColumn && 
+                        boardBeforeMove[originColumn, originRow - 1] == ChessPiece.Empty &&
+                        boardBeforeMove[originColumn, originRow - 2] == ChessPiece.Empty)
+                    {// If moving from start position and nothing is blocking it, it can move 2 spaces forward
+                        return true;
+                    }
+
+                    if (boardBeforeMove[originColumn, originRow - 1] == ChessPiece.Empty && 
+                        targetRow == originRow - 1 && 
+                        originColumn == targetColumn)
+                    {// If moving one space forward and that space is empty
+                        return true;
+                    }
+
+                    if(Math.Abs(targetColumn-originColumn) == 1 && 
+                        (originRow-targetRow) == 1 && 
+                        isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving))
+                    {// If capturing diagonally, moving forward, and an enemy is on that tile
+                        return true;
+                    }
+                    break;
+
+                case ChessColor.Black:
+                    if (originRow == 1 &&
+                        targetRow == 3 &&
+                        originColumn == targetColumn &&
+                        boardBeforeMove[originColumn, originRow + 1] == ChessPiece.Empty &&
+                        boardBeforeMove[originColumn, originRow + 2] == ChessPiece.Empty)
+                    {// If moving from start position and nothing is blocking it, it can move 2 spaces forward
+                        return true;
+                    }
+
+                    if (boardBeforeMove[originColumn, originRow + 1] == ChessPiece.Empty &&
+                        targetRow == originRow + 1 &&
+                        originColumn == targetColumn)
+                    {// If moving one space forward and that space is empty
+                        return true;
+                    }
+
+                    if (Math.Abs(targetColumn - originColumn) == 1 && 
+                        (originRow - targetRow) == -1 && 
+                        isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving))
+                    {// If capturing diagonally, moving forward, and an enemy is on that tile
+                        return true;
+                    }
+                    break;
+
+                default:
+                    throw new Exception("Could not determine Player color.");
+            }
             if (moveToCheck.From.Y == 6 && boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y] > 0) {// starting 2nd row and is white
 
             }
@@ -240,6 +300,7 @@ namespace StudentAI
 
             }
 
+            return false;
             throw (new NotImplementedException());
         }
 
@@ -249,7 +310,7 @@ namespace StudentAI
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
         /// <returns>Returns true if the move was valid</returns>
-        static private bool KnightToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
+        static private bool KnightToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
             //offset 2 in one direction 1 in the other
             int offsetX=Math.Abs(moveToCheck.To.X - moveToCheck.From.X);
@@ -404,21 +465,29 @@ namespace StudentAI
         /// <param name="boardBeforeMove">The board as it currently is _before_ the move.</param>
         /// <param name="moveToCheck">This is the move that needs to be checked to see if it's valid.</param>
         /// <returns>Returns true if the move was valid</returns>
-        private bool KingToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck)
+        private bool KingToMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
-            /*
-			var offsetX=Math.abs(targetColumn-originColumn);
-			offsetY=Math.abs(targetRow-originRow);
-			if(offsetX>1 || offsetY>1){
+            short originRow = (short)moveToCheck.From.Y;
+            short targetRow = (short)moveToCheck.To.Y;
+            short originColumn = (short)moveToCheck.From.X;
+            short targetColumn = (short)moveToCheck.To.X;
+
+            var offsetX = Math.Abs(targetColumn-originColumn);
+			var offsetY = Math.Abs(targetRow-originRow);
+
+			if(offsetX>1 || offsetY>1) // Can only move at most 1 in each direction
+            {
 				return false;
 			}
-			if((gameTurn%2)==0){//blacks turn
-				bKingPos = targetRow+originRow;
-			}else{
-				wKingPos = targetRow+originRow;
-			}
-			return true;
-			*/
+
+            if(boardBeforeMove[targetColumn, targetRow] == ChessPiece.Empty 
+                || isEnemy(boardBeforeMove[targetColumn, targetRow], colorOfPlayerMoving))
+            {// Destination must be empty or have an enemy piece
+                return true;
+            }
+			
+			return false;
+			
             throw (new NotImplementedException());
         }
         #endregion
@@ -528,7 +597,7 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns></returns>
+        /// <returns>List of legal King moves</returns>
         private List<ChessMove> GetKingMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> kingMoves = new List<ChessMove>();
@@ -615,7 +684,7 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns></returns>
+        /// <returns>List of legal Rook moves</returns>
         private List<ChessMove> GetRookMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> rookMoves = new List<ChessMove>();
@@ -716,7 +785,7 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns></returns>
+        /// <returns>List of legal Bishop moves</returns>
         private List<ChessMove> GetBishopMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> bishopMoves = new List<ChessMove>();
@@ -822,7 +891,7 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns></returns>
+        /// <returns>List of legal Knight moves</returns>
         private List<ChessMove> GetKnightMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> knightMoves = new List<ChessMove>();
@@ -903,7 +972,7 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns></returns>
+        /// <returns>List of legal Pawn moves</returns>
         private List<ChessMove> GetPawnMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             List<ChessMove> pawnMoves = new List<ChessMove>();
@@ -987,7 +1056,7 @@ namespace StudentAI
         /// </summary>
         /// <param name="chessPiece"></param>
         /// <param name="myColor"></param>
-        /// <returns></returns>
+        /// <returns>True or False depending on if the chessPiece is an enemy piece</returns>
         private static bool isEnemy(ChessPiece chessPiece, ChessColor myColor)
         {
             if (myColor == ChessColor.White && chessPiece < ChessPiece.Empty)//black is less than than empty
