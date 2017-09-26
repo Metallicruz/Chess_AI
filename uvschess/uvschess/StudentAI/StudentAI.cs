@@ -57,11 +57,23 @@ namespace StudentAI
                     // If I couldn't find a valid move easily, 
                     // I'll just create an empty move and flag a stalemate.
                     myNextMove = new ChessMove(null, null);
-                    myNextMove.Flag = ChessFlag.Stalemate;
+                    ChessPiece kingColor = ChessPiece.BlackKing;
+                    if(myColor == ChessColor.White)
+                    {
+                        kingColor = ChessPiece.WhiteKing;
+                    }
+                    if(KingInCheck(ref board, kingColor))
+                    {
+                        myNextMove.Flag = ChessFlag.Stalemate;
+                    }
+                    else
+                    {
+                        myNextMove.Flag = ChessFlag.Stalemate;
+                    }
                 }
                 else
                 {
-                    myNextMove = Greedy(board, ref allMoves,myColor,Heuristic.PieceCost);
+                    myNextMove = Greedy(ref board, ref allMoves,myColor,Heuristic.PieceCost);
                     AddAllPossibleMovesToDecisionTree(allMoves, myNextMove, board.Clone(), myColor);
                 }
                 this.Log(myColor.ToString() + " (" + this.Name + ") just moved.");
@@ -542,17 +554,239 @@ namespace StudentAI
                             case ChessPiece.BlackKing:
                                 allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
                                 break;
-
                         }
                     }
-
-
-
-
                 }
             }
 
             return allMoves;
+        }
+
+        /// <summary>
+        /// This method generates all valid moves without check on passed in king based on the currentBoard
+        /// </summary>
+        /// <param name="currentBoard">This is the current board to generate the moves for.</param>
+        /// <param name="myColor">This is the color of the player to generate the moves for.</param>
+        /// <returns>List of ChessMoves</returns>
+        List<ChessMove> GetAllMoves(ChessBoard currentBoard, ChessColor myColor, ChessPiece myKing)
+        {
+#if DEBUG
+            Profiler.IncrementTagCount((int)StudentAIProfilerTags.GetAllMoves);
+#endif
+
+            List<ChessMove> allMoves = new List<ChessMove>();
+
+            // Got through the entire board one tile at a time looking for chess pieces I can move
+            for (int Y = 0; Y < ChessBoard.NumberOfRows; Y++)
+            {
+                for (int X = 0; X < ChessBoard.NumberOfColumns; X++)
+                {
+                    if (myColor == ChessColor.White)
+                    {
+                        switch (currentBoard[X, Y])
+                        {
+                            // This block handles move generations for all WhitePawn pieces.
+                            case ChessPiece.WhitePawn:
+                                allMoves.AddRange(GetPawnMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            // This block handles move generation for all WhiteKnight pieces
+                            case ChessPiece.WhiteKnight:
+                                allMoves.AddRange(GetKnightMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.WhiteBishop:
+                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.WhiteRook:
+                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.WhiteQueen:
+                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
+                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.WhiteKing:
+                                allMoves.AddRange(GetKingMoves(currentBoard, myColor, myKing, X, Y));
+                                break;
+
+                        }
+                    }
+                    else
+                    {
+                        switch (currentBoard[X, Y])
+                        {
+                            // This block handles move generations for all BlackPawn pieces.
+                            case ChessPiece.BlackPawn:
+                                allMoves.AddRange(GetPawnMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            // This block handles move generation for all BlackKnight pieces
+                            case ChessPiece.BlackKnight:
+                                allMoves.AddRange(GetKnightMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.BlackBishop:
+                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.BlackRook:
+                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.BlackQueen:
+                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
+                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                break;
+
+                            case ChessPiece.BlackKing:
+                                allMoves.AddRange(GetKingMoves(currentBoard, myColor,myKing, X, Y));
+                                break;
+                        }
+                    }
+                }
+            }
+            return allMoves;
+        }
+
+        /// <summary>
+        /// This method returns a list of all possible moves the King piece can make factoring in check.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <returns>List of legal King moves</returns>
+        private List<ChessMove> GetKingMoves(ChessBoard currentBoard, ChessColor myColor, ChessPiece myKing, int X, int Y)
+        {
+            ChessMove kingMove;
+            List<ChessMove> kingMoves = new List<ChessMove>();
+            if (X < 0 || X > 7 || Y < 0 || Y > 7)//if coordinates are invalid for king postion
+            {
+                // Got through the entire board one tile at a time looking for my king
+                for (int y = 0; y < ChessBoard.NumberOfRows; y++)
+                {
+                    for (int x = 0; x < ChessBoard.NumberOfColumns; x++)
+                    {
+                        if (currentBoard[x, y] == myKing)
+                        {
+                            X = x;
+                            Y = y;
+                            break;
+                        }
+                    }
+                    if (y == Y)
+                    {
+                        break;
+                    }
+                }
+            }
+            // Down
+            if (Y < 7)
+            {
+                if (currentBoard[X, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y + 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1));
+                    if (MovesIntoCheck(ref currentBoard,kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+            // Up
+            if (Y > 0)
+            {
+                if (currentBoard[X, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y - 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // Right
+            if (X < 7)
+            {
+                if (currentBoard[X + 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X+1, Y));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // Left
+            if (X > 0)
+            {
+                if (currentBoard[X - 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X-1, Y));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // DownRight
+            if (Y < 7 && X < 7)
+            {
+                if (currentBoard[X + 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y + 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X+1, Y + 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // DownLeft
+            if (Y < 7 && X > 0)
+            {
+                if (currentBoard[X - 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y + 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X-1, Y + 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // UpRight
+            if (Y > 0 && X < 7)
+            {
+                if (currentBoard[X + 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y - 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X+1, Y - 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // UpLeft
+            if (Y > 0 && X > 0)
+            {
+                if (currentBoard[X - 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y - 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X-1, Y - 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            return kingMoves;
         }
 
         /// <summary>
@@ -985,7 +1219,7 @@ namespace StudentAI
                         pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
                     }
 
-                    if (Y == 1 && currentBoard[X, Y + 2] == ChessPiece.Empty && currentBoard[X, Y - 1] == ChessPiece.Empty)
+                    if (Y == 1 && currentBoard[X, Y + 2] == ChessPiece.Empty && currentBoard[X, Y + 1] == ChessPiece.Empty)
                     {
                         // Generates a move for a pawn 2 tiles forward if at start location
                         pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 2)));
@@ -1038,6 +1272,30 @@ namespace StudentAI
         #endregion
 
         #region Methods that test for check on kings
+
+
+        /// <summary>
+        /// This method determines whether a move causes a king to be in check
+        /// </summary>
+        /// <param name="board"></param>
+        /// <param name="move"></param>
+        /// <returns>returns true if the move leaves players king in check</returns>
+        private static bool MovesIntoCheck(ref ChessBoard board, ChessMove move)
+        {
+            ChessPiece tempPieceTo = board[move.To];// save previous board state piece at to location
+            ChessPiece tempPieceFrom = board[move.From];// save previous board state piece at from location
+            ChessPiece myKing = ChessPiece.BlackKing;
+            bool inCheck = false;
+            if(board[move.From] > ChessPiece.Empty)//white piece
+            {
+                myKing = ChessPiece.WhiteKing;
+            }
+            board.MakeMove(move);
+            inCheck = KingInCheck(ref board, myKing);
+            board[move.To] = tempPieceTo;// reset board state to previous state
+            board[move.From] = tempPieceFrom;// reset board state to previous state
+            return inCheck;
+        }
 
         /// <summary>
         /// This method determines whether any king is in check
@@ -1504,9 +1762,11 @@ namespace StudentAI
             /// <param name="chessPiece"></param>
             /// <param name="myColor"></param>
             /// <returns>Total board value for a player (my pieces value minus enemy pieces value)</returns>
-        private static short CalcPieceCost(ChessBoard board, ChessColor myColor)
+        private static int CalcPieceCost(ChessBoard board, ChessColor myColor, out int enemyPieceCount)
         { // Got through the entire board one tile at a time adding up piece cost
-            short cost = 0;
+            int cost = 0;
+            int whiteCount = 0;
+            int blackCount = 0;
             for (short Y = 0; Y < ChessBoard.NumberOfRows; Y++)
             {
                 for (short X = 0; X < ChessBoard.NumberOfColumns; X++)//iterate through every square on board
@@ -1515,44 +1775,54 @@ namespace StudentAI
                     {
                         // Add up cost of all pieces currently on board.
                         case ChessPiece.WhitePawn:
-                            ++cost;
+                            cost+=2;
+                            ++whiteCount;
                             break;
 
                         case ChessPiece.WhiteKnight:
                         case ChessPiece.WhiteBishop:
-                            cost += 3;
+                            cost += 4;
+                            ++whiteCount;
                             break;
 
                         case ChessPiece.WhiteRook:
-                            cost += 5;
+                            cost += 6;
+                            ++whiteCount;
                             break;
 
                         case ChessPiece.WhiteQueen:
-                            cost += 9;
+                            cost += 10;
+                            ++whiteCount;
                             break;
 
                         case ChessPiece.WhiteKing:
-                            cost += 100;
+                            cost += 1000;
+                            ++whiteCount;
                             break;
                         case ChessPiece.BlackPawn:
-                            --cost;
+                            cost-=2;
+                            ++blackCount;
                             break;
 
                         case ChessPiece.BlackKnight:
                         case ChessPiece.BlackBishop:
-                            cost -= 3;
+                            cost -= 4;
+                            ++blackCount;
                             break;
 
                         case ChessPiece.BlackRook:
-                            cost -= 5;
+                            cost -= 6;
+                            ++blackCount;
                             break;
 
                         case ChessPiece.BlackQueen:
-                            cost -= 9;
+                            cost -= 10;
+                            ++blackCount;
                             break;
 
                         case ChessPiece.BlackKing:
-                            cost -= 100;
+                            cost -= 1000;
+                            ++blackCount;
                             break;
                         default://empty square
                             continue;
@@ -1562,6 +1832,11 @@ namespace StudentAI
             if (myColor == ChessColor.Black)//player is black so negative value is good
             {
                 cost *= -1;//therefore switch signs
+                enemyPieceCount = whiteCount;
+            }
+            else
+            {
+                enemyPieceCount = blackCount;
             }
             return cost;
         }
@@ -1757,11 +2032,72 @@ namespace StudentAI
         /// <summary>
         /// This method determines the best move for current tree based off min and max values
         /// </summary>
-        /// <param name="tree"></param>
+        /// <param name="depth"></param>
+        /// <param name="board"></param>
         /// <param name="myColor"></param>
-        private static void MiniMax(ref DecisionTree tree, ChessColor myColor)
+        private int MiniMax(int depth, ref ChessBoard board, ChessColor myColor)
         {
-            throw (new NotImplementedException());
+            return Maxi(depth, ref board, myColor);
+        }
+
+        /// <summary>
+        /// This method determines the best move for current side
+        /// </summary>
+        /// <param name="depth"></param>
+        /// <param name="board"></param>
+        /// <param name="myColor"></param>
+        private int Maxi(int depth, ref ChessBoard board, ChessColor myColor)
+        {
+            int currentValue = 0;
+            int bestValue = 0;
+            ChessPiece tempPieceTo;
+            ChessPiece tempPieceFrom;
+            if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached final node depth return value
+            List<ChessMove> moves = GetAllMoves(board, myColor);
+            foreach(ChessMove move in moves)
+            {
+                tempPieceTo = board[move.To];
+                tempPieceFrom = board[move.From];
+                board.MakeMove(move);
+                currentValue = Mini(depth - 1, ref board, (ChessColor)Math.Abs((int)myColor - 1));
+                if (currentValue >= bestValue)//best move for us is the max
+                {
+                    bestValue = currentValue;
+                }
+                board[move.To] = tempPieceTo;
+                board[move.From] = tempPieceFrom;
+            }
+            return bestValue;//best move for us is the max
+        }
+
+        /// <summary>
+        /// This method determines the best move for opponent
+        /// </summary>
+        /// <param name="depth"></param>
+        /// <param name="board"></param>
+        /// <param name="myColor"></param>
+        private int Mini(int depth, ref ChessBoard board, ChessColor myColor)
+        {
+            int currentValue = 0;
+            int bestValue = 0;
+            ChessPiece tempPieceTo;
+            ChessPiece tempPieceFrom;
+            if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached final node depth return value
+            List<ChessMove> moves = GetAllMoves(board, myColor);
+            foreach (ChessMove move in moves)
+            {
+                tempPieceTo = board[move.To];
+                tempPieceFrom = board[move.From];
+                board.MakeMove(move);
+                currentValue = Mini(depth - 1, ref board, (ChessColor)Math.Abs((int)myColor - 1));
+                if (currentValue >= bestValue)
+                {
+                    bestValue = currentValue;
+                }
+                board[move.To] = tempPieceTo;
+                board[move.From] = tempPieceFrom;
+            }
+            return bestValue*-1;//negate this value to get the min value this opponents move
         }
 
         /// <summary>
@@ -1773,38 +2109,36 @@ namespace StudentAI
         /// <param name="myColor"></param>
         /// <param name="choice"></param>
         /// <returns></returns>
-        private static ChessMove Greedy(ChessBoard board, ref List<ChessMove> moves, ChessColor myColor, Heuristic choice)
+        private ChessMove Greedy(ref ChessBoard board, ref List<ChessMove> moves, ChessColor myColor, Heuristic choice)
         {
             int currentValue = 0;
             int bestValue = 0;
+            int enemyPieceCount=0;
             Random random = new Random();
             ChessMove bestMove;
             ChessPiece tempPieceTo;
             ChessPiece tempPieceFrom;
-            ChessPiece myKing;
-            ChessPiece kingInCheck = ChessPiece.Empty;
-            if (myColor == ChessColor.White) { myKing = ChessPiece.WhiteKing; }
-            else { myKing = ChessPiece.BlackKing; }
+            ChessPiece enemyKing;
+            if (myColor == ChessColor.White)
+            {
+                enemyKing = ChessPiece.BlackKing;
+            }
+            else
+            {
+                enemyKing = ChessPiece.WhiteKing;
+            }
             do//pick a random move to initialize bestMove but make sure it doesn't put our king in check
             {
                 int randomValue = random.Next(moves.Count) % moves.Count;
                 bestMove = moves[randomValue];
-                tempPieceTo = board[bestMove.To];// save previous board state piece to move to
-                tempPieceFrom = board[bestMove.From];// save previous board state piece to be moved
-                board.MakeMove(bestMove);//make temporary move
-                if(KingInCheck(ref board, myKing) == false)//if my king isn't in check
+                if(MovesIntoCheck(ref board, bestMove) == false)//if my king isn't in check
                 {
-                    //restore board to original state
-                    board[bestMove.To] = tempPieceTo;
-                    board[bestMove.From] = tempPieceFrom;
                     break;//break out of loop
                 }
-                //restore board to original state
-                board[bestMove.To] = tempPieceTo;
-                board[bestMove.From] = tempPieceFrom;
                 moves.RemoveAt(randomValue);//remove move that puts me into check
                 if (moves.Count == 0)//no moves will remove check
                 {
+                    bestMove = new ChessMove(null, null);
                     bestMove.Flag = ChessFlag.Checkmate;
                     return bestMove;
                 }
@@ -1812,20 +2146,27 @@ namespace StudentAI
 
             foreach (ChessMove move in moves)
             {
-                tempPieceTo = board[move.To];// save previous board state piece to move to
-                tempPieceFrom = board[move.From];// save previous board state piece to be moved
-                board.MakeMove(move);//make temporary move
-                if (KingInCheck(ref board, myKing))//if my king is in check
+                if (MovesIntoCheck(ref board, move) == true)//if my king is in check
                 {
-                    //restore board to original state
-                    board[move.To] = tempPieceTo;
-                    board[move.From] = tempPieceFrom;
+                    move.Flag = ChessFlag.Check;
                     continue;
+                }
+                tempPieceTo = board[move.To];// save previous board state piece to
+                tempPieceFrom = board[move.From];// save previous board state piece from
+                board.MakeMove(move);
+                if ((move.To.Y == 0 || move.To.Y == 7) && (tempPieceFrom == ChessPiece.BlackPawn || tempPieceFrom == ChessPiece.WhitePawn))//queening
+                {
+                    board[move.To] = ChessPiece.WhiteQueen;//promote pawn
+                    if(tempPieceFrom == ChessPiece.BlackPawn)//to black queen if pawn was black
+                    {
+                        board[move.To] = ChessPiece.BlackQueen;
+                    }
                 }
                 switch (choice)
                 {
                     case Heuristic.PieceCost://adds up the value of pieces on board for each player
-                        currentValue = CalcPieceCost(board, myColor);
+                        currentValue = CalcPieceCost(board, myColor, out enemyPieceCount);
+                        //currentValue = MiniMax(2,ref board,myColor);
                         break;
                     case Heuristic.Defenders:
                         currentValue = CalcDefendedCost(board, myColor);//adds up defended pieces for each player
@@ -1833,38 +2174,54 @@ namespace StudentAI
                     default:
                         throw (new NotImplementedException());
                 }
-                if(moves.Count < 10 || currentValue > 15)//if we are very ahead in pieces or have very few moves available then it's close to endgame
+                if (enemyPieceCount <= 3)//only a few enemy pieces are left so it's okay to do some costly operations
                 {
-                    kingInCheck = KingInCheck(ref board);//so see if current move puts enemy into check
-                    if(kingInCheck!= myKing && kingInCheck != ChessPiece.Empty)//if enemy king is in check with current move
+                    List<ChessMove> oppMoves = GetAllMoves(board, (ChessColor)Math.Abs((int)myColor - 1), enemyKing);//get all opponents moves
+                    if (oppMoves.Count == 0)//if opponent is out of moves
                     {
-                        ++currentValue;//make this move worth more
+                        if (KingInCheck(ref board, enemyKing))//checkmate!
+                        {
+                            move.Flag = ChessFlag.Checkmate;
+                            return move;
+                        }
+                        move.Flag = ChessFlag.Stalemate;
+                        currentValue -= 1000;//avoid stalemate!
                     }
+                    if (tempPieceFrom==ChessPiece.BlackPawn || tempPieceFrom == ChessPiece.WhitePawn)//prioritize queening at endgame
+                    {
+                        currentValue+=2;
+                    }
+                }
+                if(KingInCheck(ref board, enemyKing))//if enemy king is in check with current move
+                {
+                    move.Flag = ChessFlag.Check;
+                    ++currentValue;//make this move worth more
                 }
                 if (currentValue > bestValue)//position is better than previously checked postions
                 {
-                    kingInCheck = KingInCheck(ref board);
-                    if (kingInCheck == myKing)//make sure we aren't in check
-                    {
-                        //restore board to original state
-                        board[move.To] = tempPieceTo;
-                        board[move.From] = tempPieceFrom;
-                        continue;
-                    }
-                    else
-                    {
-                        bestValue = currentValue;
-                        bestMove = move;
-                        if (kingInCheck != ChessPiece.Empty)
-                        {
-                            bestMove.Flag = ChessFlag.Check;
-                        }
-                    }
+                    bestValue = currentValue;
+                    bestMove = move;
                 }
                 //restore board to original state
                 board[move.To] = tempPieceTo;
                 board[move.From] = tempPieceFrom;
             }
+            tempPieceTo = board[bestMove.To];// save previous board state piece to
+            tempPieceFrom = board[bestMove.From];// save previous board state piece from
+            board.MakeMove(bestMove);
+            if (bestMove.Flag == ChessFlag.Check && GetKingMoves(board, (ChessColor)Math.Abs((int)myColor - 1), enemyKing, -1, -1).Count == 0)//king can't move
+            {
+                //do some costly operations to check for checkmate since bestMove is found, king can't move, and king in check
+                //note this catches checkmate in early and mid game. Above it only checks for checkmate when few pieces are left
+                List<ChessMove> oppMoves = GetAllMoves(board, (ChessColor)Math.Abs((int)myColor - 1), enemyKing);//get all opponents moves
+                if (oppMoves.Count == 0)
+                {
+                    bestMove.Flag = ChessFlag.Checkmate;
+                }
+            }
+            //restore board to original state
+            board[bestMove.To] = tempPieceTo;
+            board[bestMove.From] = tempPieceFrom;
             return bestMove;
         }
 
