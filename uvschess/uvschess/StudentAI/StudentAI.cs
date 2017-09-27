@@ -107,60 +107,21 @@ namespace StudentAI
         /// <returns>Returns true if the move was valid</returns>
         public bool IsValidMove(ChessBoard boardBeforeMove, ChessMove moveToCheck, ChessColor colorOfPlayerMoving)
         {
+            ChessPiece tempPieceTo = boardBeforeMove[moveToCheck.To];// save previous board state piece at to location
+            ChessPiece tempPieceFrom = boardBeforeMove[moveToCheck.From];// save previous board state piece at from location
+            ChessPiece playerKing = ChessPiece.BlackKing;
+            ChessPiece enemyKing = ChessPiece.WhiteKing;
+            if (colorOfPlayerMoving == ChessColor.White)
+            {
+                playerKing = ChessPiece.WhiteKing;
+                enemyKing = ChessPiece.BlackKing;
+            }
             if (MovesIntoCheck(ref boardBeforeMove, moveToCheck))//if the move leave the player in check it's an invalid move
             {
                 this.Log("Invalid move: " + colorOfPlayerMoving + " moved into check");
                 return false;
             }
-            if (moveToCheck.Flag == ChessFlag.Stalemate)//if stalemate is flagged
-            {
-                ChessPiece playerKing = ChessPiece.BlackKing;
-                if (colorOfPlayerMoving == ChessColor.White)
-                {
-                    playerKing = ChessPiece.WhiteKing;
-                }
-                if (KingInCheck(ref boardBeforeMove, playerKing) == true)//make sure players king isn't in check
-                {
-                    this.Log("Invalid stalemate: " + colorOfPlayerMoving + " is in check.");
-                    return false;//its not a stalemate they are in check
-                }
 
-                List<ChessMove> playerMoves = GetAllMoves(boardBeforeMove, colorOfPlayerMoving);
-                foreach (ChessMove move in playerMoves)//check every possible move
-                {
-                    if (MovesIntoCheck(ref boardBeforeMove, move) == false)//if the move doesn't leave them in check
-                    {
-                        this.Log("Invalid stalemate: " + colorOfPlayerMoving + "can still move their " + boardBeforeMove[move.From].ToString());
-                        return false;//its not a stalemate
-                    }
-                }
-                return true;//it really is a stalemate
-            }
-            if (moveToCheck.Flag == ChessFlag.Checkmate)//if checkmate is flagged
-            {
-                ChessPiece enemyKing = ChessPiece.WhiteKing;
-                if(colorOfPlayerMoving == ChessColor.White)
-                {
-                    enemyKing = ChessPiece.BlackKing;
-                }
-                boardBeforeMove.MakeMove(moveToCheck);//make the move
-                if (KingInCheck(ref boardBeforeMove, enemyKing) == false)//make sure enemy king is actually in check
-                {
-                    this.Log("Invalid checkmate: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving-1) + " isn't in check.");
-                    return false;//its not a checkmate
-                }
-
-                List<ChessMove> enemyMoves = GetAllMoves(boardBeforeMove, (ChessColor)Math.Abs((int)colorOfPlayerMoving-1));
-                foreach (ChessMove move in enemyMoves)//check every possible move to see if they can get out of checkmate
-                {
-                    if (MovesIntoCheck(ref boardBeforeMove, move) == false)//if the move doesn't leave them in check
-                    {
-                        this.Log("Invalid checkmate: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving-1) + "can still move their " + boardBeforeMove[move.From].ToString());
-                        return false;//its not a checkmate
-                    }
-                }
-                return true;//it really is a checkmate
-            }
             bool isValid = true;
             switch (boardBeforeMove[moveToCheck.From.X, moveToCheck.From.Y])
             {
@@ -201,6 +162,100 @@ namespace StudentAI
                     return false;
                 default:
                     throw new Exception("Invalid chess piece");
+            }
+
+            //check the flag state
+            List<ChessMove> playerMoves = GetAllMoves(boardBeforeMove, colorOfPlayerMoving);
+            boardBeforeMove.MakeMove(moveToCheck);
+            List<ChessMove> enemyMoves = GetAllMoves(boardBeforeMove, (ChessColor)Math.Abs((int)colorOfPlayerMoving - 1));
+            if (moveToCheck.Flag == ChessFlag.NoFlag)//if nothing is flagged
+            {
+                bool noMoves = true;
+                foreach (ChessMove move in playerMoves)//check every possible move
+                {
+                    if (MovesIntoCheck(ref boardBeforeMove, move) == false)//if the move doesn't leave them in check
+                    {
+                        noMoves = false;
+                        break;
+                    }
+                }
+                if (noMoves)//player no moves
+                {
+                    this.Log("Invalid move: " + colorOfPlayerMoving + " has no valid moves. It's stalemate");
+                    return false;//its stalemate
+                }
+
+                noMoves = true;
+                foreach (ChessMove move in enemyMoves)//check every possible move
+                {
+                    if (MovesIntoCheck(ref boardBeforeMove, move) == false)//if the move doesn't leave them in check
+                    {
+                        noMoves = false;
+                        break;
+                    }
+                }
+                if (noMoves && KingInCheck(ref boardBeforeMove, enemyKing) == true)//make sure king isn't in checkmate
+                {
+                    this.Log("Invalid move: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving - 1) + " is in checkmate.");
+                    return false;//its check
+                }
+                else if (KingInCheck(ref boardBeforeMove, enemyKing) == true)//make sure king isn't in checkmate
+                {
+                    this.Log("Invalid move: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving - 1) + " is in check.");
+                    return false;//its check
+                }
+            }
+            else if (moveToCheck.Flag == ChessFlag.Check)//if check is flagged
+            {
+                if (KingInCheck(ref boardBeforeMove, enemyKing) == false)//make sure king is in check
+                {
+                    this.Log("Invalid check: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving - 1) + " isn't in check.");
+                    return false;//its not check
+                }
+            }
+            else if (moveToCheck.Flag == ChessFlag.Stalemate)//if stalemate is flagged
+            {
+                boardBeforeMove[moveToCheck.To] = tempPieceTo;// reset board state to previous state
+                boardBeforeMove[moveToCheck.From] = tempPieceFrom;// reset board state to previous state
+                if (KingInCheck(ref boardBeforeMove, playerKing) == true)//make sure players king is in check
+                {
+                    this.Log("Invalid stalemate: " + colorOfPlayerMoving + " is in check.");
+                    return false;//its not a stalemate they are in check
+                }
+                foreach (ChessMove move in playerMoves)//check every possible move
+                {
+                    if (MovesIntoCheck(ref boardBeforeMove, move) == false)//if the move doesn't leave them in check
+                    {
+                        this.Log("Invalid stalemate: " + colorOfPlayerMoving + "can still move their " + boardBeforeMove[move.From].ToString());
+                        return false;//its not a stalemate
+                    }
+                }
+                return true;//it really is a stalemate
+            }
+            else if (moveToCheck.Flag == ChessFlag.Checkmate)//if checkmate is flagged
+            {
+                if (KingInCheck(ref boardBeforeMove, enemyKing) == false)//make sure enemy king is actually in check
+                {
+                    this.Log("Invalid checkmate: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving - 1) + " isn't in check.");
+                    return false;//its not a checkmate
+                }
+                foreach (ChessMove move in enemyMoves)//check every possible move to see if they can get out of checkmate
+                {
+                    if (MovesIntoCheck(ref boardBeforeMove, move) == false)//if the move doesn't leave them in check
+                    {
+                        this.Log("Invalid checkmate: " + (ChessColor)Math.Abs((int)colorOfPlayerMoving - 1) + "can still move their " + boardBeforeMove[move.From].ToString());
+                        return false;//its not a checkmate
+                    }
+                }
+                return true;//it really is a checkmate
+            }
+            boardBeforeMove[moveToCheck.To] = tempPieceTo;// reset board state to previous state
+            boardBeforeMove[moveToCheck.From] = tempPieceFrom;// reset board state to previous state
+
+
+            if (isValid == false)
+            {
+                this.Log("Invalid move: piece can't move that way");
             }
             return isValid;
         }
