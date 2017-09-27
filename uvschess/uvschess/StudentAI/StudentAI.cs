@@ -2222,7 +2222,16 @@ namespace StudentAI
                 if (enemyPieceCount <= 3)//only a few enemy pieces are left so it's okay to do some costly operations
                 {
                     List<ChessMove> oppMoves = GetAllMoves(board, (ChessColor)Math.Abs((int)myColor - 1));//get all opponents moves
-                    if (oppMoves.Count == 0)//if opponent is out of moves
+                    bool noValidMoves = true;
+                    foreach (ChessMove oppMove in oppMoves)
+                    {
+                        if (MovesIntoCheck(ref board, oppMove) == false)
+                        {
+                            noValidMoves = false;
+                            break;
+                        }
+                    }
+                    if (noValidMoves)//if opponent is out of moves
                     {
                         if (KingInCheck(ref board, enemyKing))//checkmate!
                         {
@@ -2258,9 +2267,22 @@ namespace StudentAI
                 //do some costly operations to check for checkmate since bestMove is found, king can't move, and king in check
                 //note this catches checkmate in early and mid game. Above it only checks for checkmate when few pieces are left
                 List<ChessMove> oppMoves = GetAllMoves(board, (ChessColor)Math.Abs((int)myColor - 1));//get all opponents moves
-                if (oppMoves.Count == 0)
+                bool noValidMoves = true;
+
+                foreach (ChessMove oppMove in oppMoves)
                 {
-                    bestMove.Flag = ChessFlag.Checkmate;
+                    if (MovesIntoCheck(ref board, oppMove) == false)
+                    {
+                        noValidMoves = false;
+                        break;
+                    }
+                }
+                if (noValidMoves)//if opponent is out of moves
+                {
+                    if (KingInCheck(ref board, enemyKing))//checkmate!
+                    {
+                        bestMove.Flag = ChessFlag.Checkmate;
+                    }
                 }
             }
             //restore board to original state
