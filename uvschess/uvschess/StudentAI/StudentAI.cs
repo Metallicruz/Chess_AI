@@ -2285,7 +2285,7 @@ namespace StudentAI
                 noMoves = false;
                 boardAfterMove = board.Clone();
                 boardAfterMove.MakeMove(move);
-                currentValue = Min(depth - 1, ref boardAfterMove, myColor);
+                currentValue = Min(depth - 1, ref boardAfterMove, myColor,alpha,beta);
                 if (IsMyTurnOver())
                 {
                     return bestMove;
@@ -2331,7 +2331,7 @@ namespace StudentAI
                         }
                     }
                 }*/
-                if(currentValue >= alpha)
+                if(currentValue > alpha)
                 {
                     alpha = currentValue;
                     bestMove = move;
@@ -2372,13 +2372,47 @@ namespace StudentAI
             if (IsMyTurnOver())
             {
                 return minValue;
-            }/*
+            }
             if (depth <= 0)//reached final node depth return value
             {
                 return CalcPieceCost(board, myColor, out currentValue);
-            }*/
+            }
             ChessColor oppColor = (myColor == ChessColor.White ? ChessColor.Black : ChessColor.White);
             List<ChessMove> oppMoves = GetAllMoves(board, oppColor);
+            if (depth <= 0)//reached final node depth return value
+            {
+                foreach (ChessMove oppMove in oppMoves)
+                {
+                    if (IsMyTurnOver())
+                    {
+                        return minValue;
+                    }
+                    if (MovesIntoCheck(ref board, oppMove))//skip invalid moves
+                    {
+                        continue;
+                    }
+                    if (board[oppMove.To] != ChessPiece.Empty)
+                    {
+                        ChessBoard boardAfterMove = board.Clone();
+                        boardAfterMove.MakeMove(oppMove);
+                        currentValue = Max(depth - 1, ref boardAfterMove, myColor, alpha, beta);
+                        if (currentValue < minValue)
+                        {
+                            minValue = currentValue;
+                        }
+                    }
+                }
+                currentValue = CalcPieceCost(board, myColor, out currentValue);
+                if (currentValue < minValue)
+                {
+                    return currentValue;
+                }
+                else
+                {
+                    return minValue;
+                }
+            }
+
             foreach (ChessMove oppMove in oppMoves)
             {
                 if (IsMyTurnOver())
@@ -2391,23 +2425,14 @@ namespace StudentAI
                 }
                 ChessBoard boardAfterMove = board.Clone();
                 boardAfterMove.MakeMove(oppMove);
-                if (depth <= 0)//reached final node depth return value
-                {
-                    int currentMinValue = CalcPieceCost(boardAfterMove, myColor, out currentMinValue);
-                    if (currentMinValue == previousMinBoardValue)
-                    {
-                        return CalcPieceCost(boardAfterMove, myColor, out currentValue);
-                    }
-                    previousMinBoardValue = currentMinValue;
-                }
                 currentValue = Max(depth - 1, ref boardAfterMove, myColor,alpha,beta);
-                if (currentValue <= alpha) { return currentValue; }
+                /*if (currentValue <= alpha) { return currentValue; }
                 if (currentValue < beta)
                 {
                     beta = currentValue;
                     minValue = currentValue;
-                }
-                else if (currentValue < minValue)
+                }*/
+                if (currentValue < minValue)
                 {
                     minValue = currentValue;
                 }
@@ -2429,12 +2454,46 @@ namespace StudentAI
             if (IsMyTurnOver())
             {
                 return maxValue;
-            }/*
+            }
             if (depth <= 0)//reached final node depth return value
             {
                 return CalcPieceCost(board, myColor, out currentValue);
-            }*/
+            }
             List<ChessMove> myMoves = GetAllMoves(board, myColor);
+            if (depth <= 0)//reached final node depth return value
+            {
+                foreach (ChessMove myMove in myMoves)
+                {
+                    if (IsMyTurnOver())
+                    {
+                        return maxValue;
+                    }
+                    if (MovesIntoCheck(ref board, myMove))//skip invalid moves
+                    {
+                        continue;
+                    }
+                    if (board[myMove.To] != ChessPiece.Empty)
+                    {
+                        ChessBoard boardAfterMove = board.Clone();
+                        boardAfterMove.MakeMove(myMove);
+                        currentValue = Min(depth - 1, ref boardAfterMove, myColor, alpha, beta);
+                        if (currentValue > maxValue)
+                        {
+                            maxValue = currentValue;
+                        }
+                    }
+                }
+                currentValue = CalcPieceCost(board, myColor, out currentValue);
+                if (currentValue > maxValue)
+                {
+                    return currentValue;
+                }
+                else
+                {
+                    return maxValue;
+                }
+            }
+
             foreach (ChessMove move in myMoves)
             {
                 if (MovesIntoCheck(ref board, move))//skip invalid moves
@@ -2447,23 +2506,14 @@ namespace StudentAI
                 }
                 ChessBoard boardAfterMove = board.Clone();
                 boardAfterMove.MakeMove(move);
-                if (depth <= 0)//reached final node depth return value
-                {
-                    int currentMaxValue = CalcPieceCost(boardAfterMove, myColor, out currentMaxValue);
-                    if (currentMaxValue == previousMaxBoardValue)
-                    {
-                        return CalcPieceCost(boardAfterMove, myColor, out currentValue);
-                    }
-                    previousMaxBoardValue = currentMaxValue;
-                }
                 currentValue = Min(depth - 1, ref boardAfterMove, myColor,alpha, beta);
-                if (currentValue >= beta) { return currentValue; }
+                /*if (currentValue >= beta) { return currentValue; }
                 if (currentValue > alpha)
                 {
                     alpha = currentValue;
                     maxValue = currentValue;
-                }
-                else if (currentValue > maxValue)
+                }*/
+                if (currentValue > maxValue)
                 {
                     maxValue = currentValue;
                 }
