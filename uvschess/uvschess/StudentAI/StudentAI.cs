@@ -2255,6 +2255,8 @@ namespace StudentAI
         /// <param name="myColor"></param>
         private ChessMove MiniMax(int depth, ref ChessBoard board, ChessColor myColor)
         {
+            int alpha = -999999999;
+            int beta = 999999999;
             int currentValue;
             //int alpha = -999999999;//-infinity
             bool noMoves = true;
@@ -2268,7 +2270,7 @@ namespace StudentAI
             ChessMove bestMove = myMoves[randomValue];
             ChessBoard boardAfterMove = board.Clone();
             boardAfterMove.MakeMove(bestMove);
-            int alpha = Min(depth - 1, ref boardAfterMove, myColor)+1;
+            alpha = Min(depth - 1, ref boardAfterMove, myColor,alpha,beta)+1;
             bestMove.ValueOfMove = alpha;
             foreach (ChessMove move in myMoves)
             {
@@ -2363,7 +2365,7 @@ namespace StudentAI
         /// <param name="depth"></param>
         /// <param name="board"></param>
         /// <param name="myColor"></param>
-        private int Min(int depth, ref ChessBoard board, ChessColor myColor)
+        private int Min(int depth, ref ChessBoard board, ChessColor myColor, int alpha, int beta)
         {
             int currentValue = 0;
             int minValue = 999999999;
@@ -2398,8 +2400,14 @@ namespace StudentAI
                     }
                     previousMinBoardValue = currentMinValue;
                 }
-                currentValue = Max(depth - 1, ref boardAfterMove, myColor);
-                if (currentValue < minValue)
+                currentValue = Max(depth - 1, ref boardAfterMove, myColor,alpha,beta);
+                if (currentValue <= alpha) { return currentValue; }
+                if (currentValue < beta)
+                {
+                    beta = currentValue;
+                    minValue = currentValue;
+                }
+                else if (currentValue < minValue)
                 {
                     minValue = currentValue;
                 }
@@ -2413,7 +2421,7 @@ namespace StudentAI
         /// <param name="depth"></param>
         /// <param name="board"></param>
         /// <param name="myColor"></param>
-        private int Max(int depth, ref ChessBoard board, ChessColor myColor)
+        private int Max(int depth, ref ChessBoard board, ChessColor myColor, int alpha, int beta)
         {
             int currentValue = 0;
             int maxValue = -999999999;
@@ -2448,8 +2456,14 @@ namespace StudentAI
                     }
                     previousMaxBoardValue = currentMaxValue;
                 }
-                currentValue = Min(depth - 1, ref boardAfterMove, myColor);
-                if (currentValue > maxValue)
+                currentValue = Min(depth - 1, ref boardAfterMove, myColor,alpha, beta);
+                if (currentValue >= beta) { return currentValue; }
+                if (currentValue > alpha)
+                {
+                    alpha = currentValue;
+                    maxValue = currentValue;
+                }
+                else if (currentValue > maxValue)
                 {
                     maxValue = currentValue;
                 }
