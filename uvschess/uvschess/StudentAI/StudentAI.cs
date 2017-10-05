@@ -33,6 +33,26 @@ namespace StudentAI
             get { return "Group One"; }
 #endif
         }
+        /// <summary>
+        /// The previous move to avoid repeated moves
+        /// </summary>
+        private int NumberOfPreviousStates { get; set; }
+        /// <summary>
+        /// The turn counter used for generating random
+        /// </summary>
+        private int TurnCount { get; set; }
+        /// <summary>
+        /// The turn counter used for generating random
+        /// </summary>
+        private int previousMinBoardValue { get; set; }
+        /// <summary>
+        /// The turn counter used for generating random
+        /// </summary>
+        private int previousMaxBoardValue { get; set; }
+        /// <summary>
+        /// The previous move to avoid repeated moves
+        /// </summary>
+        private List<ChessBoard> PreviousStates{get;set;}
 
         /// <summary>
         /// Evaluates the chess board and decided which move to make. This is the main method of the AI.
@@ -58,7 +78,24 @@ namespace StudentAI
             // This increments the method call count by 1 for GetNextMove in the profiler
             Profiler.IncrementTagCount((int)StudentAIProfilerTags.GetNextMove);
 #endif
-
+            ++TurnCount;
+            int depth = 3;
+            previousMinBoardValue = 0;
+            previousMaxBoardValue = 0;
+            NumberOfPreviousStates = 6;
+            if (PreviousStates == null)
+            {
+                PreviousStates = new List<ChessBoard>();
+            }
+            if (PreviousStates.Count < NumberOfPreviousStates)
+            {
+                PreviousStates.Add(board);
+            }
+            else
+            {
+                PreviousStates.RemoveAt(0);
+                PreviousStates.Add(board);
+            }
             ChessMove myNextMove = null;
             this.Log($"{IsMyTurnOver()}");
             while (!IsMyTurnOver())
@@ -76,7 +113,7 @@ namespace StudentAI
                     }
                     if(KingInCheck(ref board, kingColor))
                     {
-                        myNextMove.Flag = ChessFlag.Stalemate;
+                        myNextMove.Flag = ChessFlag.Checkmate;
                     }
                     else
                     {
@@ -85,12 +122,20 @@ namespace StudentAI
                 }
                 else
                 {
-                    //while()
-                    int depth = 2;
                     //myNextMove = Greedy(ref board, ref allMoves,myColor,Heuristic.PieceCost);
-                    myNextMove = MiniMax(depth, ref board, myColor);
+                    ChessMove temp = MiniMax(depth, ref board, myColor);
+                    if(depth <= 3)
+                    {
+                        myNextMove = temp;
+                    }
+                    else if(temp != null && temp.ValueOfMove>myNextMove.ValueOfMove)
+                    {
+                        myNextMove = temp;
+                        
+                    }
+                    ++depth;
                     SetFlags(ref board, ref myNextMove, myColor);
-                    AddAllPossibleMovesToDecisionTree(allMoves, myNextMove, board.Clone(), myColor,1);
+                    //AddAllPossibleMovesToDecisionTree(allMoves, myNextMove, board.Clone(), myColor,1);
                     /*
                     DecisionTree tree = new DecisionTree(board);
                     // Tell UvsChess about the decision tree object
@@ -1376,7 +1421,7 @@ namespace StudentAI
         /// <param name="move"></param>
         private static void SetFlags(ref ChessBoard board, ref ChessMove move, ChessColor myColor)
         {
-            if (MovesIntoCheck(ref board, move))//if we have to move into check thats stalemate
+            if (move == null || move.To == null || move.From == null || MovesIntoCheck(ref board, move))//if we have to move into check thats stalemate
             {
                 move = new ChessMove(null, null);
                 move.Flag = ChessFlag.Stalemate;
@@ -2210,34 +2255,104 @@ namespace StudentAI
         /// <param name="myColor"></param>
         private ChessMove MiniMax(int depth, ref ChessBoard board, ChessColor myColor)
         {
-            int alpha = -999999999;//-infinity
-            ChessMove bestMove = new ChessMove(null,null);
-            bestMove.Flag = ChessFlag.Stalemate;
+            int currentValue;
+            //int alpha = -999999999;//-infinity
+            bool noMoves = true;
+            bool repeatState = true;
+            previousMinBoardValue = 0;
+            previousMaxBoardValue = 0;
+
+            Random random = new Random();
             List<ChessMove> myMoves = GetAllMoves(board, myColor);
-            foreach(ChessMove move in myMoves)
+            int randomValue = random.Next(myMoves.Count) % myMoves.Count;
+            ChessMove bestMove = myMoves[randomValue];
+            ChessBoard boardAfterMove = board.Clone();
+            boardAfterMove.MakeMove(bestMove);
+            int alpha = Min(depth - 1, ref boardAfterMove, myColor)+1;
+            bestMove.ValueOfMove = alpha;
+            foreach (ChessMove move in myMoves)
             {
-                if(MovesIntoCheck(ref board, move))//skip invalid moves
+                if (IsMyTurnOver())
+                {
+                    return bestMove;
+                }
+                if(move.From.X == bestMove.From.X && move.From.Y == bestMove.From.Y && move.To.X == bestMove.To.X && move.To.Y == bestMove.To.Y)//don't check nodes that have already been checked
                 {
                     continue;
                 }
-                int currentValue = 0;
-                ChessBoard boardAfterMove = board.Clone();
+                noMoves = false;
+                boardAfterMove = board.Clone();
                 boardAfterMove.MakeMove(move);
                 currentValue = Min(depth - 1, ref boardAfterMove, myColor);
-                if(currentValue > alpha)
+                if (IsMyTurnOver())
+                {
+                    return bestMove;
+                }
+                /*if (PreviousStates.Count >= NumberOfPreviousStates)
+                {
+                    for (int i = 0; i < PreviousStates.Count; ++i)
+                    {
+                        repeatState = true;
+                        ChessBoard previousState = PreviousStates[i];
+                         // Got through the entire board one tile at a time looking for chess pieces to compare
+                         for (int Y = 0; Y < ChessBoard.NumberOfRows; Y++)
+                         {
+                            if (!repeatState)
+                            {
+                                break;
+                            }
+                             for (int X = 0; X < ChessBoard.NumberOfColumns; X++)
+                             {
+                                 if(previousState[X,Y] != boardAfterMove[X, Y])
+                                 {
+                                    repeatState = false;
+                                     break;
+                                 }
+                             }
+                         }
+                        if (repeatState)//do some random choices if current move results in repeated state
+                        {
+                            boardAfterMove = board.Clone();
+                            boardAfterMove.MakeMove(myMoves[randomValue]);
+                            int temp = Min(depth - 1, ref boardAfterMove, myColor);
+                            if (IsMyTurnOver())
+                            {
+                                return bestMove;
+                            }
+                            if (temp > currentValue)
+                            {
+                                alpha = temp;
+                                bestMove = myMoves[randomValue];
+                                bestMove.ValueOfMove = alpha;
+                            }
+                            break;
+                        }
+                    }
+                }*/
+                if(currentValue >= alpha)
                 {
                     alpha = currentValue;
                     bestMove = move;
+                    bestMove.ValueOfMove = alpha;
                 }
             }
-            ChessPiece myKing = ChessPiece.WhiteKing;
-            if (myColor == ChessColor.Black)
+
+            if (noMoves)
             {
-                myKing = ChessPiece.BlackKing;
-            }
-            if (bestMove.Flag == ChessFlag.Stalemate && KingInCheck(ref board, myKing))//if no valid moves existed and I'm currently in check
-            {
-                bestMove.Flag = ChessFlag.Checkmate;
+                ChessPiece myKing = ChessPiece.WhiteKing;
+                if (myColor == ChessColor.Black)
+                {
+                    myKing = ChessPiece.BlackKing;
+                }
+                bestMove = new ChessMove(null, null);
+                if (KingInCheck(ref board, myKing))//if no valid moves existed and I'm currently in check
+                {
+                    bestMove.Flag = ChessFlag.Checkmate;
+                }
+                else
+                {
+                    bestMove.Flag = ChessFlag.Stalemate;
+                }
             }
             return bestMove;
         }
@@ -2252,17 +2367,37 @@ namespace StudentAI
         {
             int currentValue = 0;
             int minValue = 999999999;
-            if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached final node depth return value
+            if (IsMyTurnOver())
+            {
+                return minValue;
+            }/*
+            if (depth <= 0)//reached final node depth return value
+            {
+                return CalcPieceCost(board, myColor, out currentValue);
+            }*/
             ChessColor oppColor = (myColor == ChessColor.White ? ChessColor.Black : ChessColor.White);
             List<ChessMove> oppMoves = GetAllMoves(board, oppColor);
             foreach (ChessMove oppMove in oppMoves)
             {
+                if (IsMyTurnOver())
+                {
+                    return minValue;
+                }
                 if (MovesIntoCheck(ref board, oppMove))//skip invalid moves
                 {
                     continue;
                 }
                 ChessBoard boardAfterMove = board.Clone();
                 boardAfterMove.MakeMove(oppMove);
+                if (depth <= 0)//reached final node depth return value
+                {
+                    int currentMinValue = CalcPieceCost(boardAfterMove, myColor, out currentMinValue);
+                    if (currentMinValue == previousMinBoardValue)
+                    {
+                        return CalcPieceCost(boardAfterMove, myColor, out currentValue);
+                    }
+                    previousMinBoardValue = currentMinValue;
+                }
                 currentValue = Max(depth - 1, ref boardAfterMove, myColor);
                 if (currentValue < minValue)
                 {
@@ -2283,6 +2418,14 @@ namespace StudentAI
             int currentValue = 0;
             int maxValue = -999999999;
             if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached final node depth return value
+            if (IsMyTurnOver())
+            {
+                return maxValue;
+            }/*
+            if (depth <= 0)//reached final node depth return value
+            {
+                return CalcPieceCost(board, myColor, out currentValue);
+            }*/
             List<ChessMove> myMoves = GetAllMoves(board, myColor);
             foreach (ChessMove move in myMoves)
             {
@@ -2290,8 +2433,21 @@ namespace StudentAI
                 {
                     continue;
                 }
+                if (IsMyTurnOver())
+                {
+                    return maxValue;
+                }
                 ChessBoard boardAfterMove = board.Clone();
                 boardAfterMove.MakeMove(move);
+                if (depth <= 0)//reached final node depth return value
+                {
+                    int currentMaxValue = CalcPieceCost(boardAfterMove, myColor, out currentMaxValue);
+                    if (currentMaxValue == previousMaxBoardValue)
+                    {
+                        return CalcPieceCost(boardAfterMove, myColor, out currentValue);
+                    }
+                    previousMaxBoardValue = currentMaxValue;
+                }
                 currentValue = Min(depth - 1, ref boardAfterMove, myColor);
                 if (currentValue > maxValue)
                 {
