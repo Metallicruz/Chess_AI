@@ -123,8 +123,9 @@ namespace StudentAI
                 else
                 {
                     //myNextMove = Greedy(ref board, ref allMoves,myColor,Heuristic.PieceCost);
-                    ChessMove temp = MiniMax(depth, ref board, myColor);
-                    if(depth <= 3)
+                    ChessMove temp;
+                    myNextMove = MiniMax(depth, ref board, myColor);
+                    /*if(depth <= 3)
                     {
                         myNextMove = temp;
                     }
@@ -133,7 +134,7 @@ namespace StudentAI
                         myNextMove = temp;
                         
                     }
-                    ++depth;
+                    ++depth;*/
                     SetFlags(ref board, ref myNextMove, myColor);
                     //AddAllPossibleMovesToDecisionTree(allMoves, myNextMove, board.Clone(), myColor,1);
                     /*
