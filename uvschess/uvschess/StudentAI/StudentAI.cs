@@ -676,6 +676,8 @@ namespace StudentAI
             }
         }
 
+       
+
         /// <summary>
         /// This method generates all valid moves for myColor based on the currentBoard
         /// </summary>
@@ -688,7 +690,7 @@ namespace StudentAI
             //Profiler.IncrementTagCount((int)StudentAIProfilerTags.GetAllMoves);
 #endif
          
-            List<ChessMove> allMoves = new List<ChessMove>();
+            List<ChessMove> allMoves = new List<ChessMove>(100);
 
             // Got through the entire board one tile at a time looking for chess pieces I can move
             for (int Y = 0; Y < ChessBoard.NumberOfRows; Y++)
@@ -705,29 +707,29 @@ namespace StudentAI
                         {
                             // This block handles move generations for all WhitePawn pieces.
                             case ChessPiece.WhitePawn:
-                                allMoves.AddRange(GetPawnMoves(currentBoard, myColor, X, Y));
+                                GetPawnMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             // This block handles move generation for all WhiteKnight pieces
                             case ChessPiece.WhiteKnight:
-                                allMoves.AddRange(GetKnightMoves(currentBoard, myColor, X, Y));
+                                GetKnightMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.WhiteBishop:
-                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                GetBishopMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.WhiteRook:
-                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
+                                GetRookMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.WhiteQueen:
-                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
-                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                GetRookMoves(currentBoard, myColor, X, Y, allMoves);
+                                GetBishopMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.WhiteKing:
-                                allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
+                                GetKingMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                         }
@@ -738,29 +740,29 @@ namespace StudentAI
                         {
                             // This block handles move generations for all BlackPawn pieces.
                             case ChessPiece.BlackPawn:
-                                allMoves.AddRange(GetPawnMoves(currentBoard, myColor, X, Y));
+                                GetPawnMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             // This block handles move generation for all BlackKnight pieces
                             case ChessPiece.BlackKnight:
-                                allMoves.AddRange(GetKnightMoves(currentBoard, myColor, X, Y));
+                                GetKnightMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.BlackBishop:
-                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                GetBishopMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.BlackRook:
-                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
+                                GetRookMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.BlackQueen:
-                                allMoves.AddRange(GetRookMoves(currentBoard, myColor, X, Y));
-                                allMoves.AddRange(GetBishopMoves(currentBoard, myColor, X, Y));
+                                GetRookMoves(currentBoard, myColor, X, Y, allMoves);
+                                GetBishopMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
 
                             case ChessPiece.BlackKing:
-                                allMoves.AddRange(GetKingMoves(currentBoard, myColor, X, Y));
+                                GetKingMoves(currentBoard, myColor, X, Y, allMoves);
                                 break;
                         }
                     }
@@ -772,17 +774,163 @@ namespace StudentAI
 
         /// <summary>
         /// This method returns a list of all possible moves the King piece can make factoring in check.
+        /// This is the old version of this method. It is being kept in order to not break functionality
+        /// of Greedy. Not used for Minimax.
         /// </summary>
         /// <param name="currentBoard"></param>
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
         /// <returns>List of legal King moves</returns>
-        private static List<ChessMove> GetKingMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
+        private static List<ChessMove> GetKingMovesList(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
         {
             ChessMove kingMove;
-            ChessLocation enemyKingLocation = new ChessLocation(X,Y);
+            ChessLocation enemyKingLocation = new ChessLocation(X, Y);
             List<ChessMove> kingMoves = new List<ChessMove>();
+            ChessPiece myKing = ChessPiece.BlackKing;
+            if (myColor == ChessColor.White)
+            {
+                myKing = ChessPiece.WhiteKing;
+            }
+            if (X < 0 || X > 7 || Y < 0 || Y > 7)//if coordinates are invalid for king postion
+            {
+                // Got through the entire board one tile at a time looking for my king
+                for (int y = 0; y < ChessBoard.NumberOfRows; y++)
+                {
+                    for (int x = 0; x < ChessBoard.NumberOfColumns; x++)
+                    {
+                        if (currentBoard[x, y] == myKing)
+                        {
+                            X = x;
+                            Y = y;
+                            break;
+                        }
+                    }
+                    if (y == Y)
+                    {
+                        break;
+                    }
+                }
+            }
+            // Down
+            if (Y < 7)
+            {
+                if (currentBoard[X, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y + 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+            // Up
+            if (Y > 0)
+            {
+                if (currentBoard[X, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y - 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // Right
+            if (X < 7)
+            {
+                if (currentBoard[X + 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // Left
+            if (X > 0)
+            {
+                if (currentBoard[X - 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // DownRight
+            if (Y < 7 && X < 7)
+            {
+                if (currentBoard[X + 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y + 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // DownLeft
+            if (Y < 7 && X > 0)
+            {
+                if (currentBoard[X - 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y + 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // UpRight
+            if (Y > 0 && X < 7)
+            {
+                if (currentBoard[X + 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y - 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            // UpLeft
+            if (Y > 0 && X > 0)
+            {
+                if (currentBoard[X - 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y - 1], myColor))
+                {
+                    kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1));
+                    if (MovesIntoCheck(ref currentBoard, kingMove) == false)
+                    {
+                        kingMoves.Add(kingMove);
+                    }
+                }
+            }
+
+            return kingMoves;
+        }
+
+
+        /// <summary>
+        /// This method adds all possible moves the King piece can make factoring in check to the list of allMoves.
+        /// </summary>
+        /// <param name="currentBoard"></param>
+        /// <param name="myColor"></param>
+        /// <param name="X"></param>
+        /// <param name="Y"></param>
+        /// <param name="allMoves"></param>
+        private static void GetKingMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y, List<ChessMove> allMoves)
+        {
+            ChessMove kingMove;
+            //ChessLocation enemyKingLocation = new ChessLocation(X,Y);
             ChessPiece myKing = ChessPiece.BlackKing;
             if (myColor == ChessColor.White)
             {
@@ -816,7 +964,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1));
                     if (MovesIntoCheck(ref currentBoard,kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -828,7 +976,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -841,7 +989,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X+1, Y));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -854,7 +1002,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X-1, Y));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -867,7 +1015,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X+1, Y + 1));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -880,7 +1028,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X-1, Y + 1));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -893,7 +1041,7 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X+1, Y - 1));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
@@ -906,139 +1054,136 @@ namespace StudentAI
                     kingMove = new ChessMove(new ChessLocation(X, Y), new ChessLocation(X-1, Y - 1));
                     if (MovesIntoCheck(ref currentBoard, kingMove) == false)
                     {
-                        kingMoves.Add(kingMove);
+                        allMoves.Add(kingMove);
                     }
                 }
             }
-
-            return kingMoves;
         }
-/*
-        /// <summary>
-        /// This method returns a list of all possible moves the King piece make.
-        /// </summary>
-        /// <param name="currentBoard"></param>
-        /// <param name="myColor"></param>
-        /// <param name="X"></param>
-        /// <param name="Y"></param>
-        /// <returns>List of legal King moves</returns>
-        private List<ChessMove> GetKingMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
-        {
-            List<ChessMove> kingMoves = new List<ChessMove>();
-            ChessPiece enemyKing = ChessPiece.BlackKing;
-            ChessLocation enemyKingLocation = new ChessLocation(X, Y);
-            if (myColor == ChessColor.White)
-            {
-                enemyKing = ChessPiece.BlackKing;
-            }
-            // Got through the entire board one tile at a time looking for enemy king
-            for (int y = 0; y < ChessBoard.NumberOfRows; y++)
-            {
-                for (int x = 0; x < ChessBoard.NumberOfColumns; x++)
+        /*
+                /// <summary>
+                /// This method returns a list of all possible moves the King piece make.
+                /// </summary>
+                /// <param name="currentBoard"></param>
+                /// <param name="myColor"></param>
+                /// <param name="X"></param>
+                /// <param name="Y"></param>
+                /// <returns>List of legal King moves</returns>
+                private List<ChessMove> GetKingMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
                 {
-                    if(currentBoard[x,y]== enemyKing)//set location for enemy king
+                    List<ChessMove> kingMoves = new List<ChessMove>();
+                    ChessPiece enemyKing = ChessPiece.BlackKing;
+                    ChessLocation enemyKingLocation = new ChessLocation(X, Y);
+                    if (myColor == ChessColor.White)
                     {
-                        enemyKingLocation.X = x;
-                        enemyKingLocation.Y = y;
+                        enemyKing = ChessPiece.BlackKing;
                     }
-                }
-            }
+                    // Got through the entire board one tile at a time looking for enemy king
+                    for (int y = 0; y < ChessBoard.NumberOfRows; y++)
+                    {
+                        for (int x = 0; x < ChessBoard.NumberOfColumns; x++)
+                        {
+                            if(currentBoard[x,y]== enemyKing)//set location for enemy king
+                            {
+                                enemyKingLocation.X = x;
+                                enemyKingLocation.Y = y;
+                            }
+                        }
+                    }
 
-            // Down
-            if (Y < 7 && !(enemyKingLocation.Y == Y+2 && (enemyKingLocation.X == X || enemyKingLocation.X == X+1 || enemyKingLocation.X == X-1)))//make sure king is 
-            {
-                if (currentBoard[X, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y + 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
-                }
-            }
+                    // Down
+                    if (Y < 7 && !(enemyKingLocation.Y == Y+2 && (enemyKingLocation.X == X || enemyKingLocation.X == X+1 || enemyKingLocation.X == X-1)))//make sure king is 
+                    {
+                        if (currentBoard[X, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y + 1], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
+                        }
+                    }
 
-            // Up
-            if (Y > 0 && !(enemyKingLocation.Y == Y - 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X - 1 || enemyKingLocation.X == X + 1)))
-            {
-                if (currentBoard[X, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y - 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1)));
-                }
-            }
+                    // Up
+                    if (Y > 0 && !(enemyKingLocation.Y == Y - 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X - 1 || enemyKingLocation.X == X + 1)))
+                    {
+                        if (currentBoard[X, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X, Y - 1], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1)));
+                        }
+                    }
 
-            // Right
-            if (X < 7 && !(enemyKingLocation.X == X + 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1 || enemyKingLocation.Y == Y + 1)))
-            {
-                if (currentBoard[X + 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y)));
-                }
-            }
+                    // Right
+                    if (X < 7 && !(enemyKingLocation.X == X + 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1 || enemyKingLocation.Y == Y + 1)))
+                    {
+                        if (currentBoard[X + 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y)));
+                        }
+                    }
 
-            // Left
-            if (X > 0 && !(enemyKingLocation.X == X - 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1 || enemyKingLocation.Y == Y + 1)))
-            {
-                if (currentBoard[X - 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y)));
-                }
-            }
+                    // Left
+                    if (X > 0 && !(enemyKingLocation.X == X - 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1 || enemyKingLocation.Y == Y + 1)))
+                    {
+                        if (currentBoard[X - 1, Y] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y)));
+                        }
+                    }
 
-            // DownRight
-            if (Y < 7 && X < 7
-                && !(enemyKingLocation.Y == Y + 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X + 1 || enemyKingLocation.X == X +2))//check the three squares below location to move to
-                && !(enemyKingLocation.X == X + 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y + 1)))//check two square to the right of location to move to (third square was checked just above)
-            {
-                if (currentBoard[X + 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y + 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1)));
-                }
-            }
+                    // DownRight
+                    if (Y < 7 && X < 7
+                        && !(enemyKingLocation.Y == Y + 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X + 1 || enemyKingLocation.X == X +2))//check the three squares below location to move to
+                        && !(enemyKingLocation.X == X + 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y + 1)))//check two square to the right of location to move to (third square was checked just above)
+                    {
+                        if (currentBoard[X + 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y + 1], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1)));
+                        }
+                    }
 
-            // DownLeft
-            if (Y < 7 && X > 0
-                && !(enemyKingLocation.Y == Y + 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X - 1 || enemyKingLocation.X == X - 2))//check the three squares below location to move to
-                && !(enemyKingLocation.X == X - 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y + 1)))//check two square to the left of location to move to (third square was checked just above)
-            {
-                if (currentBoard[X - 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y + 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1)));
-                }
-            }
+                    // DownLeft
+                    if (Y < 7 && X > 0
+                        && !(enemyKingLocation.Y == Y + 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X - 1 || enemyKingLocation.X == X - 2))//check the three squares below location to move to
+                        && !(enemyKingLocation.X == X - 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y + 1)))//check two square to the left of location to move to (third square was checked just above)
+                    {
+                        if (currentBoard[X - 1, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y + 1], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1)));
+                        }
+                    }
 
-            // UpRight
-            if (Y > 0 && X < 7
-                 && !(enemyKingLocation.Y == Y - 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X + 1 || enemyKingLocation.X == X + 2))//check the three squares above location to move to
-                && !(enemyKingLocation.X == X + 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1)))//check two square to the right of location to move to (third square was checked just above)
-            {
-                if (currentBoard[X + 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y - 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1)));
-                }
-            }
+                    // UpRight
+                    if (Y > 0 && X < 7
+                         && !(enemyKingLocation.Y == Y - 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X + 1 || enemyKingLocation.X == X + 2))//check the three squares above location to move to
+                        && !(enemyKingLocation.X == X + 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1)))//check two square to the right of location to move to (third square was checked just above)
+                    {
+                        if (currentBoard[X + 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y - 1], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1)));
+                        }
+                    }
 
-            // UpLeft
-            if (Y > 0 && X > 0
-                 && !(enemyKingLocation.Y == Y - 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X - 1 || enemyKingLocation.X == X - 2))//check the three squares above location to move to
-                && !(enemyKingLocation.X == X - 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1)))//check two square to the right of location to move to (third square was checked just above)
-            {
-                if (currentBoard[X - 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y - 1], myColor))
-                {
-                    kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1)));
-                }
-            }
+                    // UpLeft
+                    if (Y > 0 && X > 0
+                         && !(enemyKingLocation.Y == Y - 2 && (enemyKingLocation.X == X || enemyKingLocation.X == X - 1 || enemyKingLocation.X == X - 2))//check the three squares above location to move to
+                        && !(enemyKingLocation.X == X - 2 && (enemyKingLocation.Y == Y || enemyKingLocation.Y == Y - 1)))//check two square to the right of location to move to (third square was checked just above)
+                    {
+                        if (currentBoard[X - 1, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y - 1], myColor))
+                        {
+                            kingMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1)));
+                        }
+                    }
 
-            return kingMoves;
-        }
-        */
+                    return kingMoves;
+                }
+                */
 
         /// <summary>
-        /// This method returns a list of all possible moves the Rook piece make.
+        /// This method adds all possible moves the Rook piece can make factoring in check to the list of allMoves.
         /// </summary>
         /// <param name="currentBoard"></param>
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns>List of legal Rook moves</returns>
-        private static List<ChessMove> GetRookMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
+        /// <param name="allMoves"></param>
+        private static void GetRookMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y, List<ChessMove> allMoves)
         {
-            List<ChessMove> rookMoves = new List<ChessMove>();
             int curX = X;
             int curY = Y;
 
@@ -1048,11 +1193,11 @@ namespace StudentAI
                 curY++;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1069,11 +1214,11 @@ namespace StudentAI
                 curY--;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1090,11 +1235,11 @@ namespace StudentAI
                 curX++;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1112,11 +1257,11 @@ namespace StudentAI
                 curX--;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    rookMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1125,21 +1270,18 @@ namespace StudentAI
                 }
             }
 
-            return rookMoves;
-
         }
 
         /// <summary>
-        /// This method returns a list of all possible moves the Bishop piece make.
+        /// This method adds all possible moves the Bishop piece can make factoring in check to the list of allMoves.
         /// </summary>
         /// <param name="currentBoard"></param>
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns>List of legal Bishop moves</returns>
-        private static List<ChessMove> GetBishopMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
+        /// <param name="allMoves"></param>
+        private static void GetBishopMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y, List<ChessMove> allMoves)
         {
-            List<ChessMove> bishopMoves = new List<ChessMove>();
             int curX = X;
             int curY = Y;
 
@@ -1150,11 +1292,11 @@ namespace StudentAI
                 curY++;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1173,11 +1315,11 @@ namespace StudentAI
                 curY++;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1196,11 +1338,11 @@ namespace StudentAI
                 curY--;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1219,11 +1361,11 @@ namespace StudentAI
                 curY--;
                 if (currentBoard[curX, curY] == ChessPiece.Empty)
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                 }
                 else if (isEnemy(currentBoard[curX, curY], myColor))
                 {
-                    bishopMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(curX, curY)));
                     break; // Can move to enemy tile, but no further
                 }
                 else
@@ -1231,28 +1373,25 @@ namespace StudentAI
                     break; // Friendly piece is blocking that direction.
                 }
             }
-
-            return bishopMoves;
         }
 
         /// <summary>
-        /// This method returns a list of all possible moves the Knight piece make.
+        /// This method adds all possible moves the King piece can make factoring in check to the list of allMoves.
         /// </summary>
         /// <param name="currentBoard"></param>
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns>List of legal Knight moves</returns>
-        private static List<ChessMove> GetKnightMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
+        /// <param name="allMoves"></param>
+        private static void GetKnightMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y, List<ChessMove> allMoves)
         {
-            List<ChessMove> knightMoves = new List<ChessMove>();
             // UpUpLeft 
             if (X > 0 && Y > 1)
             {
                 if (currentBoard[X - 1, Y - 2] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y - 2], myColor))
                 {
                     // Generates a move for a Knigt to move UpUpLeft to an empty tile or one with an enemy chess piece
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 2)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 2)));
                 }
             }
             // UpLeftLeft
@@ -1260,7 +1399,7 @@ namespace StudentAI
             {
                 if (currentBoard[X - 2, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 2, Y - 1], myColor))
                 {
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 2, Y - 1)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 2, Y - 1)));
                 }
             }
             // UpUpRight
@@ -1268,7 +1407,7 @@ namespace StudentAI
             {
                 if (currentBoard[X + 1, Y - 2] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y - 2], myColor))
                 {
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 2)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 2)));
                 }
             }
             // UpRightRight
@@ -1276,7 +1415,7 @@ namespace StudentAI
             {
                 if (currentBoard[X + 2, Y - 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 2, Y - 1], myColor))
                 {
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 2, Y - 1)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 2, Y - 1)));
                 }
             }
             // DownDownLeft
@@ -1284,7 +1423,7 @@ namespace StudentAI
             {
                 if (currentBoard[X - 1, Y + 2] == ChessPiece.Empty || isEnemy(currentBoard[X - 1, Y + 2], myColor))
                 {
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 2)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 2)));
                 }
             }
             // DownLeftLeft
@@ -1292,7 +1431,7 @@ namespace StudentAI
             {
                 if (currentBoard[X - 2, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X - 2, Y + 1], myColor))
                 {
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 2, Y + 1)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 2, Y + 1)));
                 }
             }
             // DownDownRight
@@ -1301,7 +1440,7 @@ namespace StudentAI
                 if (currentBoard[X + 1, Y + 2] == ChessPiece.Empty || isEnemy(currentBoard[X + 1, Y + 2], myColor))
                 {
                     // Generates a move for a Knigt to move UpUpLeft to an empty tile or one with an enemy chess piece
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 2)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 2)));
                 }
             }
             // DownRightRight
@@ -1309,24 +1448,22 @@ namespace StudentAI
             {
                 if (currentBoard[X + 2, Y + 1] == ChessPiece.Empty || isEnemy(currentBoard[X + 2, Y + 1], myColor))
                 {
-                    knightMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 2, Y + 1)));
+                    allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 2, Y + 1)));
                 }
             }
 
-            return knightMoves;
         }
 
         /// <summary>
-        /// This method returns a list of all possible moves the Pawn piece make.
+        /// This method adds all possible moves the King piece can make factoring in check to the list of allMoves.
         /// </summary>
         /// <param name="currentBoard"></param>
         /// <param name="myColor"></param>
         /// <param name="X"></param>
         /// <param name="Y"></param>
-        /// <returns>List of legal Pawn moves</returns>
-        private static List<ChessMove> GetPawnMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y)
+        /// <param name="allMoves"></param>
+        private static void GetPawnMoves(ChessBoard currentBoard, ChessColor myColor, int X, int Y, List<ChessMove> allMoves)
         {
-            List<ChessMove> pawnMoves = new List<ChessMove>();
             switch (myColor)
             {
                 // White Pawn
@@ -1334,14 +1471,14 @@ namespace StudentAI
                     if (currentBoard[X, Y - 1] == ChessPiece.Empty)
                     {
                         // Generate a move to move my pawn 1 tile forward
-                        pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1)));
+                        allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 1)));
 
                     }
 
                     if (Y == 6 && currentBoard[X, Y - 2] == ChessPiece.Empty && currentBoard[X, Y - 1] == ChessPiece.Empty)
                     {
                         // Generates a move for a pawn 2 tiles forward if at start location
-                        pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 2)));
+                        allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y - 2)));
                     }
 
                     if (X > 0 && Y > 0)
@@ -1349,7 +1486,7 @@ namespace StudentAI
                         if (isEnemy(currentBoard[X - 1, Y - 1], myColor))
                         {
                             // Generates a move for a pawn to move diagonally to a tile with an enemy chess piece
-                            pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1)));
+                            allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y - 1)));
                         }
                     }
 
@@ -1358,7 +1495,7 @@ namespace StudentAI
                         if (isEnemy(currentBoard[X + 1, Y - 1], myColor))
                         {
                             // Generates a move for a pawn to move diagonally to a tile with an enemy chess piece
-                            pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1)));
+                            allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y - 1)));
                         }
                     }
                     break;
@@ -1368,13 +1505,13 @@ namespace StudentAI
                     if (currentBoard[X, Y + 1] == ChessPiece.Empty)
                     {
                         // Generate a move to move my pawn 1 tile forward
-                        pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
+                        allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 1)));
                     }
 
                     if (Y == 1 && currentBoard[X, Y + 2] == ChessPiece.Empty && currentBoard[X, Y + 1] == ChessPiece.Empty)
                     {
                         // Generates a move for a pawn 2 tiles forward if at start location
-                        pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 2)));
+                        allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X, Y + 2)));
                     }
 
                     if (X < 7 && Y < 7)
@@ -1382,7 +1519,7 @@ namespace StudentAI
                         if (isEnemy(currentBoard[X + 1, Y + 1], myColor))
                         {
                             // Generates a move for a pawn to move diagonally to a tile with an enemy chess piece
-                            pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1)));
+                            allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X + 1, Y + 1)));
                         }
                     }
 
@@ -1391,7 +1528,7 @@ namespace StudentAI
                         if (isEnemy(currentBoard[X - 1, Y + 1], myColor))
                         {
                             // Generates a move for a pawn to move diagonally to a tile with an enemy chess piece
-                            pawnMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1)));
+                            allMoves.Add(new ChessMove(new ChessLocation(X, Y), new ChessLocation(X - 1, Y + 1)));
                         }
                     }
                     break;
@@ -1399,7 +1536,6 @@ namespace StudentAI
                 default:
                     break;
             }
-            return pawnMoves;
         }
 
         /// <summary>
@@ -2653,7 +2789,7 @@ namespace StudentAI
             tempPieceTo = board[bestMove.To];// save previous board state piece to
             tempPieceFrom = board[bestMove.From];// save previous board state piece from
             board.MakeMove(bestMove);
-            if (bestMove.Flag == ChessFlag.Check && GetKingMoves(board, (ChessColor)Math.Abs((int)myColor - 1), -1, -1).Count == 0)//king can't move
+            if (bestMove.Flag == ChessFlag.Check && GetKingMovesList(board, (ChessColor)Math.Abs((int)myColor - 1), -1, -1).Count == 0)//king can't move
             {
                 //do some costly operations to check for checkmate since bestMove is found, king can't move, and king in check
                 //note this catches checkmate in early and mid game. Above it only checks for checkmate when few pieces are left
