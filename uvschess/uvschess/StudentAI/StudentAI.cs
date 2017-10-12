@@ -2177,6 +2177,7 @@ namespace StudentAI
                             if (Y == 7)//keep king in the backline
                             {
                                 ++cost;
+                                --lateGameCost;
                             }
                             lateGameCost += Math.Abs(4 - Y);
                             lateGameCost += Math.Abs(4 - X);
@@ -2235,6 +2236,7 @@ namespace StudentAI
                             if (Y == 0)//keep king in the backline
                             {
                                 --cost;
+                                ++lateGameCost;
                             }
                             lateGameCost -= Math.Abs(4 - Y);
                             lateGameCost -= Math.Abs(4 - X);
@@ -2478,6 +2480,10 @@ namespace StudentAI
             ChessPiece tempPieceTo = board[bestMove.To];// save previous board state piece at to location
             ChessPiece tempPieceFrom = board[bestMove.From];// save previous board state piece at from location
             board.MakeMove(bestMove);
+            if (IsMyTurnOver())
+            {
+                return bestMove;
+            }
             alpha = Min(depth, ref board, myColor, alpha, beta);
             bestMove.ValueOfMove = alpha;
             board[bestMove.To] = tempPieceTo;// save previous board state piece at to location
@@ -2527,6 +2533,10 @@ namespace StudentAI
             int currentValue = 0;
             int minValue = 999999999;
             string partialFenBoard;
+            if (IsMyTurnOver())
+            {
+                return minValue;
+            }
             //if (depth <= 0){ return CalcPieceCost(board, myColor, out currentValue); }
             ChessColor oppColor = (myColor == ChessColor.White ? ChessColor.Black : ChessColor.White);
             List<ChessMove> oppMoves = GetAllMoves(board, oppColor);
@@ -2658,12 +2668,12 @@ namespace StudentAI
             int currentValue = 0;
             int maxValue = -999999999;
             string partialFenBoard;
-            if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached leaf node return value
-            //if (depth <= 0) { return Quiescence(1,ref board,myColor,alpha,beta); }//reached leaf node return value
             if (IsMyTurnOver())
             {
                 return maxValue;
             }
+            if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached leaf node return value
+            //if (depth <= 0) { return Quiescence(1,ref board,myColor,alpha,beta); }//reached leaf node return value
             ++nodesExpanded;
             List<ChessMove> myMoves = GetAllMoves(board, myColor);
 
