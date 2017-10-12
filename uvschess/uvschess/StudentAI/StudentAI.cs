@@ -34,25 +34,22 @@ namespace StudentAI
 #endif
         }
         /// <summary>
-        /// The previous move to avoid repeated moves
+        /// Contains the previous board states to avoid repeated moves board, cost
         /// </summary>
-        private int NumberOfPreviousStates { get; set; }
+        private Dictionary<string, int> PreviousStatesValue{get;set;}
         /// <summary>
-        /// The turn counter used for generating random
+        /// Contains the previous board states to avoid repeated moves board, depth
         /// </summary>
-        private int TurnCount { get; set; }
+        private Dictionary<string, int> PreviousStatesDepth{get;set; }
         /// <summary>
-        /// The turn counter used for generating random
+        /// Contains the previous board states to avoid repeated moves board, depth
         /// </summary>
-        private int previousMinBoardValue { get; set; }
+        private int turnCounter { get; set; }
+
         /// <summary>
-        /// The turn counter used for generating random
+        /// Contains the previous board states to avoid repeated moves board, depth
         /// </summary>
-        private int previousMaxBoardValue { get; set; }
-        /// <summary>
-        /// The previous move to avoid repeated moves
-        /// </summary>
-        private List<ChessBoard> PreviousStates{get;set;}
+        private int nodesExpanded{get;set;}
 
         /// <summary>
         /// Evaluates the chess board and decided which move to make. This is the main method of the AI.
@@ -66,36 +63,20 @@ namespace StudentAI
 #if DEBUG
             //For more information about using the profiler, visit http://code.google.com/p/uvschess/wiki/ProfilerHowTo
             // This is how you setup the profiler. This should be done in GetNextMove.
-            Profiler.TagNames = Enum.GetNames(typeof(StudentAIProfilerTags));
+            //Profiler.TagNames = Enum.GetNames(typeof(StudentAIProfilerTags));
 
             // In order for the profiler to calculate the AI's nodes/sec value,
             // I need to tell the profiler which method key's are for MiniMax.
             // In this case our mini and max methods are the same,
             // but usually they are not.
-            Profiler.MinisProfilerTag = (int)StudentAIProfilerTags.GetAllMoves;
-            Profiler.MaxsProfilerTag = (int)StudentAIProfilerTags.GetAllMoves;
+            //Profiler.MinisProfilerTag = (int)StudentAIProfilerTags.GetAllMoves;
+            //Profiler.MaxsProfilerTag = (int)StudentAIProfilerTags.GetAllMoves;
 
             // This increments the method call count by 1 for GetNextMove in the profiler
-            Profiler.IncrementTagCount((int)StudentAIProfilerTags.GetNextMove);
+            //Profiler.IncrementTagCount((int)StudentAIProfilerTags.GetNextMove);
 #endif
-            ++TurnCount;
             int depth = 1;
-            previousMinBoardValue = 0;
-            previousMaxBoardValue = 0;
-            NumberOfPreviousStates = 6;
-            if (PreviousStates == null)
-            {
-                PreviousStates = new List<ChessBoard>();
-            }
-            if (PreviousStates.Count < NumberOfPreviousStates)
-            {
-                PreviousStates.Add(board);
-            }
-            else
-            {
-                PreviousStates.RemoveAt(0);
-                PreviousStates.Add(board);
-            }
+            ++turnCounter;
             ChessMove myNextMove = null;
             List<ChessMove> allMoves = GetAllMoves(board, myColor);
             List<ChessMove> validMoves = new List<ChessMove>();
@@ -106,7 +87,10 @@ namespace StudentAI
                     validMoves.Add(move);
                 }
             }
+            //PreviousStatesValue = new Dictionary<string, int>(10000);
+            //PreviousStatesDepth = new Dictionary<string, int>(10000);
             allMoves = validMoves;
+            nodesExpanded = 0;
             this.Log($"{IsMyTurnOver()}");
             while (!IsMyTurnOver())
             {
@@ -132,15 +116,17 @@ namespace StudentAI
                 else
                 {
                     //myNextMove = Greedy(ref board, ref allMoves,myColor,Heuristic.PieceCost);
+                    if (turnCounter == 1 && myColor == ChessColor.White)
+                    {
+                        myNextMove = new ChessMove(new ChessLocation(4, 6), new ChessLocation(4, 4));
+                        break;
+                    }
                     ChessMove tempBest = MiniMax(depth, ref board, myColor, allMoves);
                     if (IsMyTurnOver())//search didn't finish so return previous best move
                     {
                         break;
                     }
-                    if (myNextMove == null || tempBest.ValueOfMove > myNextMove.ValueOfMove)
-                    {
-                        myNextMove = tempBest;
-                    }
+                    myNextMove = tempBest;
                     SetFlags(ref board, ref myNextMove, myColor);
                     allMoves.Sort((y, x) => x.ValueOfMove.CompareTo(y.ValueOfMove));
                     ++depth;
@@ -156,7 +142,7 @@ namespace StudentAI
             }
             Profiler.SetDepthReachedDuringThisTurn(depth-1);
             this.Log(myColor.ToString() + " (" + this.Name + ") just moved.");
-            this.Log(myColor.ToString() + " (" + this.Name + ") reached depth of " + (depth-1)+".");
+            this.Log(myColor.ToString() + " (" + this.Name + ") reached depth of " + (depth-1)+" and expanded "+ (nodesExpanded/1000) +","+nodesExpanded%1000+" nodes.");
             this.Log("value of move ("+myNextMove.From.X+", " + myNextMove.From.Y+ ") to (" + myNextMove.To.X + ", " + myNextMove.To.Y + "): value = " + myNextMove.ValueOfMove);
             this.Log(string.Empty);
             return myNextMove;
@@ -2126,8 +2112,10 @@ namespace StudentAI
         private static int CalcPieceCost(ChessBoard board, ChessColor myColor, out int enemyPieceCount)
         { // Got through the entire board one tile at a time adding up piece cost
             int cost = 0;
+            int lateGameCost = 0;
             int whiteCount = 0;
             int blackCount = 0;
+
             for (short Y = 0; Y < ChessBoard.NumberOfRows; Y++)
             {
                 for (short X = 0; X < ChessBoard.NumberOfColumns; X++)//iterate through every square on board
@@ -2136,14 +2124,19 @@ namespace StudentAI
                     {
                         // Add up cost of all pieces currently on board.
                         case ChessPiece.WhitePawn:
-                            if(Y>4 && (X==3 || X== 4))//control middle
+                            if ((Y + 1 == 3 || Y + 1 == 4) && (X + 1 == 3 || X + 1 == 4 || X - 1 == 3 || X - 1 == 4))//control middle
                             {
-                                cost -= 5;//push pawns
+                                ++cost;
                             }
-                            if((X>0 && Y>0 && board[X-1,Y-1] > ChessPiece.Empty) || (X<7 && Y>0 && board[X+1,Y-1] > ChessPiece.Empty))
+                            if (Y == 4 && (X == 3 || X == 4))
                             {
-                                cost+=10;//defended piece
+                                cost += 30;//opening move
                             }
+                            if ((X>0 && Y>0 && board[X-1,Y-1] > ChessPiece.Empty) || (X<7 && Y>0 && board[X+1,Y-1] > ChessPiece.Empty))
+                            {
+                                cost+=3;//defended piece
+                            }
+                            lateGameCost += (7 - Y);//late game you want to push pawns
                             cost+=1000;
                             ++whiteCount;
                             break;
@@ -2159,9 +2152,13 @@ namespace StudentAI
                         case ChessPiece.WhiteBishop:
                             if (Y < 7)//get bishop out of the backline
                             {
-                                cost+=3;
+                                ++cost;
                             }
-                            cost += 3000;
+                            if ((X > 0 && Y > 0 && board[X - 1, Y - 1] == ChessPiece.WhitePawn) || (X < 7 && Y > 0 && board[X + 1, Y - 1] == ChessPiece.WhitePawn))
+                            {
+                                cost-=2;//bishop blocked
+                            }
+                            cost += 3010;
                             ++whiteCount;
                             break;
 
@@ -2177,22 +2174,29 @@ namespace StudentAI
 
                         case ChessPiece.WhiteKing:
                             cost += 99999;
-                            if (Y ==6)//get bishop out of the backline
+                            if (Y == 7)//keep king in the backline
                             {
                                 ++cost;
                             }
+                            lateGameCost += Math.Abs(4 - Y);
+                            lateGameCost += Math.Abs(4 - X);
                             ++whiteCount;
                             break;
                         case ChessPiece.BlackPawn:
                             cost-=1000;
-                            if (Y < 4 && (X == 3 || X == 4))//control middle
+                            if((Y+1 == 3 || Y+1 == 4) && (X + 1 == 3 || X + 1 == 4 || X - 1 == 3 || X - 1 == 4))//control middle
                             {
-                                cost += 5;//push pawns
+                                --cost;
                             }
-                            if ((X>0 && Y<7 && board[X - 1, Y + 1] < ChessPiece.Empty) || (X<7 && Y>0 && board[X + 1, Y + 1] < ChessPiece.Empty))
+                            if (Y == 5 && (X == 3 || X == 4))
                             {
-                                cost-=10;//defended piece
+                                cost -= 30;//push pawns
                             }
+                            if ((X>0 && Y<7 && board[X - 1, Y + 1] < ChessPiece.Empty) || (X<7 && Y<7 && board[X + 1, Y + 1] < ChessPiece.Empty))
+                            {
+                                cost-=3;//defended piece
+                            }
+                            lateGameCost -= Y;//late game you want to push pawns
                             ++blackCount;
                             break;
 
@@ -2207,9 +2211,13 @@ namespace StudentAI
                         case ChessPiece.BlackBishop:
                             if (Y > 0)//get bishop out of the backline
                             {
-                                cost-=3;
+                                --cost;
                             }
-                            cost -= 3000;
+                            if ((X > 0 && Y < 7 && board[X - 1, Y + 1] == ChessPiece.BlackPawn) || (X < 7 && Y < 7 && board[X + 1, Y + 1] == ChessPiece.BlackPawn))
+                            {
+                                cost += 2;//bishop blocked
+                            }
+                            cost -= 3010;
                             ++blackCount;
                             break;
 
@@ -2224,10 +2232,12 @@ namespace StudentAI
                             break;
 
                         case ChessPiece.BlackKing:
-                            if (Y == 0)//get bishop out of the backline
+                            if (Y == 0)//keep king in the backline
                             {
                                 --cost;
                             }
+                            lateGameCost -= Math.Abs(4 - Y);
+                            lateGameCost -= Math.Abs(4 - X);
                             cost -= 99999;
                             ++blackCount;
                             break;
@@ -2238,11 +2248,19 @@ namespace StudentAI
             }
             if (myColor == ChessColor.Black)//player is black so negative value is good
             {
+                if (whiteCount < 9)
+                {
+                    cost += lateGameCost;
+                }
                 cost *= -1;//therefore switch signs
                 enemyPieceCount = whiteCount;
             }
             else
             {
+                if (blackCount < 9)
+                {
+                    cost += lateGameCost;
+                }
                 enemyPieceCount = blackCount;
             }
             return cost;
@@ -2450,9 +2468,6 @@ namespace StudentAI
             int alpha = -999999999;//-infinity
             int beta = 999999999;
             int currentValue;
-            bool noMoves = true;
-            previousMinBoardValue = 0;
-            previousMaxBoardValue = 0;
             Random random = new Random();
             int randomValue = random.Next(myMoves.Count) % myMoves.Count;
             if (depth > 1)//list is sorted after depth 1
@@ -2460,26 +2475,38 @@ namespace StudentAI
                 randomValue = 0;//check the most promising first
             }
             ChessMove bestMove = myMoves[randomValue];
-            ChessBoard boardAfterMove = board.Clone();
-            boardAfterMove.MakeMove(bestMove);
-            alpha = Min(depth, ref boardAfterMove, myColor, alpha, beta);
+            ChessPiece tempPieceTo = board[bestMove.To];// save previous board state piece at to location
+            ChessPiece tempPieceFrom = board[bestMove.From];// save previous board state piece at from location
+            board.MakeMove(bestMove);
+            alpha = Min(depth, ref board, myColor, alpha, beta);
             bestMove.ValueOfMove = alpha;
+            board[bestMove.To] = tempPieceTo;// save previous board state piece at to location
+            board[bestMove.From] = tempPieceFrom;// save previous board state piece at from location
             foreach (ChessMove move in myMoves)
             {
                 if (IsMyTurnOver())
                 {
                     return bestMove;
                 }
-                if (move.From.X == bestMove.From.X && move.From.Y == bestMove.From.Y && move.To.X == bestMove.To.X && move.To.Y == bestMove.To.Y)//don't check nodes that have already been checked
+                if (move.From.X == bestMove.From.X && move.From.Y == bestMove.From.Y && move.To.X == bestMove.To.X && move.To.Y == bestMove.To.Y)//don't check node that have already been checked
                 {
                     continue;
                 }
-                noMoves = false;
-                boardAfterMove = board.Clone();
-                boardAfterMove.MakeMove(move);
-                currentValue = Min(depth, ref boardAfterMove, myColor, alpha, beta);//check full depth limit
+                tempPieceTo = board[move.To];// save previous board state piece at to location
+                tempPieceFrom = board[move.From];// save previous board state piece at from location
+                board.MakeMove(move);
+                if (tempPieceTo == ChessPiece.Empty)
+                {
+                    currentValue = Min(depth-1, ref board, myColor, alpha, beta);//check full depth limit
+                }
+                else
+                {
+                    currentValue = Min(depth, ref board, myColor, alpha, beta);//check full depth limit
+                }
                 move.ValueOfMove = currentValue;
-                if(currentValue > alpha)
+                board[move.To] = tempPieceTo;// save previous board state piece at to location
+                board[move.From] = tempPieceFrom;// save previous board state piece at from location
+                if (currentValue > alpha)
                 {
                     alpha = currentValue;
                     bestMove = move;
@@ -2499,13 +2526,11 @@ namespace StudentAI
         {
             int currentValue = 0;
             int minValue = 999999999;
+            string partialFenBoard;
             //if (depth <= 0){ return CalcPieceCost(board, myColor, out currentValue); }
-            if (IsMyTurnOver())
-            {
-                return CalcPieceCost(board, myColor, out currentValue);
-            }
             ChessColor oppColor = (myColor == ChessColor.White ? ChessColor.Black : ChessColor.White);
             List<ChessMove> oppMoves = GetAllMoves(board, oppColor);
+            ++nodesExpanded;
             /*if (depth <= 0)//reached final node depth return value
             {
                 foreach (ChessMove oppMove in oppMoves)
@@ -2546,20 +2571,62 @@ namespace StudentAI
 
             foreach (ChessMove oppMove in oppMoves)
             {
-                if (MovesIntoCheck(ref board, oppMove))//skip invalid moves
-                {
-                    continue;
-                }
                 if (IsMyTurnOver())
                 {
                     return minValue;
                 }
+                if (MovesIntoCheck(ref board, oppMove))//skip invalid moves
+                {
+                    continue;
+                }
                 ChessPiece tempPieceTo = board[oppMove.To];// save previous board state piece at to location
                 ChessPiece tempPieceFrom = board[oppMove.From];// save previous board state piece at from location
                 board.MakeMove(oppMove);
-                if(depth > 1 && tempPieceTo == ChessPiece.Empty)//quiet state (no captures)
+                /* partialFenBoard = board.ToPartialFenBoard();
+                 if (PreviousStatesDepth.ContainsKey(partialFenBoard))//state has already been visited with remaining depth or more
+                 {
+                     if(depth > PreviousStatesDepth[partialFenBoard])
+                     {
+                         if (depth > 1 && tempPieceTo == ChessPiece.Empty)//quiet state (no captures)
+                         {
+                             currentValue = Max(depth - 2, ref board, myColor, alpha, beta);//quiet position so don't search too deeply
+                         }
+                         else
+                         {
+                             currentValue = Max(depth - 1, ref board, myColor, alpha, beta);
+                         }
+                         PreviousStatesDepth[partialFenBoard] = depth;
+                         PreviousStatesValue[partialFenBoard] = currentValue;
+                     }
+                     else
+                     {
+                         currentValue = PreviousStatesValue[partialFenBoard];//don't search it instead use previous value
+                     }
+                 }
+                 else // never seen before board state
+                 {
+                     if (depth > 1 && tempPieceTo == ChessPiece.Empty)//quiet state (no captures)
+                     {
+                         currentValue = Max(depth - 2, ref board, myColor, alpha, beta);//quiet position so don't search too deeply
+                     }
+                     else
+                     {
+                         currentValue = Max(depth - 1, ref board, myColor, alpha, beta);
+                     }
+                     if (PreviousStatesDepth.ContainsKey(partialFenBoard))
+                     {
+                         PreviousStatesDepth[partialFenBoard] = depth;
+                         PreviousStatesValue[partialFenBoard] = currentValue;
+                     }
+                     else
+                     {
+                         PreviousStatesDepth.Add(partialFenBoard, depth);
+                         PreviousStatesValue.Add(partialFenBoard, currentValue);
+                     }
+                 }*/
+                if (tempPieceTo == ChessPiece.Empty)
                 {
-                    currentValue = Max(depth-2, ref board, myColor, alpha, beta);//quiet position so don't search too deeply
+                    currentValue = Max(depth - 2, ref board, myColor, alpha, beta);
                 }
                 else
                 {
@@ -2590,64 +2657,70 @@ namespace StudentAI
         {
             int currentValue = 0;
             int maxValue = -999999999;
+            string partialFenBoard;
             if (depth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached leaf node return value
+            //if (depth <= 0) { return Quiescence(1,ref board,myColor,alpha,beta); }//reached leaf node return value
             if (IsMyTurnOver())
             {
-                return CalcPieceCost(board, myColor, out currentValue);
+                return maxValue;
             }
+            ++nodesExpanded;
             List<ChessMove> myMoves = GetAllMoves(board, myColor);
-            if (depth <= 0)
+
+            ChessPiece tempPieceTo;// save previous board state piece at to location
+            ChessPiece tempPieceFrom;
+            /*foreach (ChessMove move in myMoves)
             {
-                foreach (ChessMove myMove in myMoves)
-                {
-                    if (MovesIntoCheck(ref board, myMove))//skip invalid moves
-                    {
-                        continue;
-                    }
-                    if (board[myMove.To] != ChessPiece.Empty && (Math.Abs((int)board[myMove.From])-7) <= (int)board[myMove.To])
-                    {
-                        ChessPiece tempPieceTo = board[myMove.To];// save previous board state piece at to location
-                        ChessPiece tempPieceFrom = board[myMove.From];// save previous board state piece at from location
-                        board.MakeMove(myMove);
-                        currentValue = Min(depth, ref board, myColor, alpha, beta);
-                        board[myMove.To] = tempPieceTo;//restore previous board state piece at to location
-                        board[myMove.From] = tempPieceFrom;// restore previous board state piece at from location
-                        if (currentValue > maxValue)
-                        {
-                            maxValue = currentValue;
-                        }
-                        if (maxValue >= beta) { return maxValue; }
-                        if (maxValue > alpha)
-                        {
-                            alpha = maxValue;
-                        }
-                    }
-                    if (IsMyTurnOver())
-                    {
-                        return CalcPieceCost(board, myColor, out currentValue);
-                    }
-                }
-                if(maxValue != -999999999)
+                tempPieceTo = board[move.To];// save previous board state piece at to location
+                tempPieceFrom = board[move.From];// save previous board state piece at from location
+                board.MakeMove(move);
+                CalcPieceCost(board, myColor, out currentValue);
+                board[move.To] = tempPieceTo;//restore previous board state piece at to location
+                board[move.From] = tempPieceFrom;// restore previous board state piece at from location
+            }
+            myMoves.Sort((y, x) => x.ValueOfMove.CompareTo(y.ValueOfMove));*/
+            foreach (ChessMove move in myMoves)
+            {
+                if (IsMyTurnOver())
                 {
                     return maxValue;
                 }
-                return CalcPieceCost(board, myColor, out currentValue);
-            }
-
-            foreach (ChessMove move in myMoves)
-            {
                 if (MovesIntoCheck(ref board, move))//skip invalid moves
                 {
                     continue;
                 }
-                if (IsMyTurnOver())
-                {
-                    return CalcPieceCost(board, myColor, out currentValue);
-                }
-                ChessPiece tempPieceTo = board[move.To];// save previous board state piece at to location
-                ChessPiece tempPieceFrom = board[move.From];// save previous board state piece at from location
+                tempPieceTo = board[move.To];// save previous board state piece at to location
+                tempPieceFrom = board[move.From];// save previous board state piece at from location
                 board.MakeMove(move);
                 currentValue = Min(depth, ref board, myColor, alpha, beta);
+                /*partialFenBoard = board.ToPartialFenBoard();
+                if (PreviousStatesDepth.ContainsKey(partialFenBoard))//state has already been visited with remaining depth or more
+                {
+                    if (depth > PreviousStatesDepth[partialFenBoard])
+                    {
+                        currentValue = Min(depth, ref board, myColor, alpha, beta);
+                        PreviousStatesDepth[partialFenBoard] = depth;
+                        PreviousStatesValue[partialFenBoard] = currentValue;
+                    }
+                    else
+                    {
+                        currentValue = PreviousStatesValue[partialFenBoard];//don't search it instead use previous value
+                    }
+                }
+                else // never seen before board state
+                {
+                    currentValue = Min(depth, ref board, myColor, alpha, beta);
+                    if (PreviousStatesDepth.ContainsKey(partialFenBoard))//state has already been visited
+                    {
+                        PreviousStatesDepth[partialFenBoard] = depth;
+                        PreviousStatesValue[partialFenBoard] = currentValue;
+                    }
+                    else
+                    {
+                        PreviousStatesDepth.Add(partialFenBoard, depth);
+                        PreviousStatesValue.Add(partialFenBoard, currentValue);
+                    }
+                }*/
                 board[move.To] = tempPieceTo;//restore previous board state piece at to location
                 board[move.From] = tempPieceFrom;// restore previous board state piece at from location
                 if (currentValue > maxValue)
@@ -2661,6 +2734,55 @@ namespace StudentAI
                 }
             }
             return maxValue;//return best moves value for myColor at this depth
+        }
+
+        /// <summary>
+        /// This method determines the best move for my color
+        /// </summary>
+        /// <param name="depth"></param>
+        /// <param name="board"></param>
+        /// <param name="myColor"></param>
+        private int Quiescence(int maxDepth, ref ChessBoard board, ChessColor myColor, int alpha, int beta)
+        {
+            int currentValue = 0;
+            if (maxDepth <= 0) { return CalcPieceCost(board, myColor, out currentValue); }//reached leaf node return value
+            if (IsMyTurnOver())
+            {
+                return currentValue;
+            }
+            ++nodesExpanded;
+            List<ChessMove> moves = GetAllMoves(board, myColor);
+
+            ChessPiece tempPieceTo;// save previous board state piece at to location
+            ChessPiece tempPieceFrom;
+            foreach (ChessMove move in moves)
+            {
+                if (IsMyTurnOver())
+                {
+                    return currentValue;
+                }
+                if(board[move.To] == ChessPiece.Empty)
+                {
+                    continue;
+                }
+                if (MovesIntoCheck(ref board, move))//skip invalid moves
+                {
+                    continue;
+                }
+                tempPieceTo = board[move.To];// save previous board state piece at to location
+                tempPieceFrom = board[move.From];// save previous board state piece at from location
+                board.MakeMove(move);
+                this.Log("expanding depth for: " + tempPieceFrom + " takes " + tempPieceTo);
+                currentValue = -Quiescence(maxDepth-1, ref board, myColor, -alpha, -beta);//don't search it instead use previous value
+                board[move.To] = tempPieceTo;//restore previous board state piece at to location
+                board[move.From] = tempPieceFrom;// restore previous board state piece at from location
+                if (currentValue > alpha)
+                {
+                    if (currentValue >= beta) { return beta; }
+                    alpha = currentValue;
+                }
+            }
+            return alpha;//return best moves value for myColor at this depth
         }
 
         /// <summary>
